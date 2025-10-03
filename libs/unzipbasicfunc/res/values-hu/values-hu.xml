@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        Szeretné megemelni a hangerőt a készüléke hangszóróján?\n\n
+        A funkció használata, és a hangerő hosszabb időn keresztül történő megemelése károsíthatja a hallását.\n
+        Kérjük, vegye figyelembe, hogy a beállítás nem változik, amíg le nem csatlakoztatja a készüléket a hangszóróról, vagy ki nem kapcsolja a csatlakoztatott eszközt.
+    </string>
+    <string name="perm_description_audio_gain_control">Hangszóró  hangerejének szabályozása</string>
+    <string name="perm_label_audio_gain_control">Hangszóró  hangerejének szabályozása</string>
+</resources>

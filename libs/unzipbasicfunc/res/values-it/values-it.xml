@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        E possibile amplificare l\'audio degli altoparlanti del visore.\n\n
+        Questa funzione, se usata a lungo, potrebbe danneggiare l\'udito.\n
+        Si ricorda che questa funzione rimane attiva  sino a quando si disconnette o si spegne il dispositivo.
+    </string>
+    <string name="perm_description_audio_gain_control">Controllo del volume altoparlante visore</string>
+    <string name="perm_label_audio_gain_control">Controllo del volume altoparlante visore</string>
+</resources>

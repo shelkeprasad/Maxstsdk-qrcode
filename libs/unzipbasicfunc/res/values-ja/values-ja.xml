@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        ヘッドセット音量増幅機能を利用しますか？\n\n
+        この機能を利用し大音量で長時間聞くと、聴力を損なう恐れがあります\n
+        この機能はヘッドセットを抜去したり、接続先のデバイスの電源をオフにしない限り設定が維持されますのでご注意ください
+    </string>
+    <string name="perm_description_audio_gain_control">ヘッドセット音量増幅</string>
+    <string name="perm_label_audio_gain_control">ヘッドセット音量増幅</string>
+</resources>

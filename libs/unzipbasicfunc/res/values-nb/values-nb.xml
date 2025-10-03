@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        Ønsker du å øke lydstyrken til hodesettet?\n\n
+        Ved å bruke denne funksjonen og lytte til høyt volum over tid kan du ødelegge hørselen din.\n
+        Vær obs: denne innstillingen er aktivert inntil du kobler fra ditt hodesett eller skrur av strømmen på den tilknyttede enheten.
+    </string>
+    <string name="perm_description_audio_gain_control">Styring av lydstyrken til hodesettet</string>
+    <string name="perm_label_audio_gain_control">Styring av lydstyrken til hodesettet</string>
+</resources>

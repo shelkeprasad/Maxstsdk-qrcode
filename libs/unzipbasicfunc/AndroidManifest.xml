@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.epson.moverio"
+    android:versionCode="79"
+    android:versionName="1.2.1" >
+
+    <uses-sdk
+        android:minSdkVersion="24"
+        android:targetSdkVersion="31" />
+
+    <permission
+        android:name="${applicationId}.permission.AUDIO_GAIN"
+        android:description="@string/perm_description_audio_gain_control"
+        android:label="@string/perm_label_audio_gain_control"
+        android:permissionGroup="${applicationId}.permission-group.MOVERIO"
+        android:protectionLevel="dangerous" />
+
+    <permission-group
+        android:name="${applicationId}.permission-group.MOVERIO"
+        android:description="@string/perm_description_audio_gain_control"
+        android:label="@string/perm_label_audio_gain_control" />
+
+</manifest>

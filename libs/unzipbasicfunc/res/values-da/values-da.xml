@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        Ønsker du at styrkeindstille lyden i headsettets mikrofoner?\n\n
+        Ved at bruge denne funktion og lytte ved høj styrke i lang tid kan du skade din hørelse.\n
+        Læg venligst mærke til: denne indstilling vil være fast, indtil du slukker for headsettet eller slukker med styrkeknappen til den tilkoblede enhed.
+    </string>
+    <string name="perm_description_audio_gain_control">Kontrol til styrkeindstilling af headset mikrofon</string>
+    <string name="perm_label_audio_gain_control">Kontrol til styrkeindstilling af headset mikrofon</string>
+</resources>

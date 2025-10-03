@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        ¿Quieres amplificar la salida de audio de los altavoces?\n\n
+        Utilizar esta función y escuchar a un volumen alto durante mucho tiempo puede dañar tu audición.\n
+        Ten en cuenta: que este ajuste permanecerá fijado hasta que desconectes las gafas-proyectors o apagues el dispositivo conectado.
+    </string>
+    <string name="perm_description_audio_gain_control">Control del volumen de los  altavoces de las Moverio</string>
+    <string name="perm_label_audio_gain_control">Control del volumen de los  altavoces de las Moverio</string>
+</resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        Kulaklık hoparlörünün ses çıkışını yükseltmek istiyor musunuz?\n\n
+        Bu işlevi kullanmak ve uzun süre yüksek sesle dinlemek işitme duyunuza zarar verebilir.\n
+        Lütfen unutmayın: Bu ayar, siz kulaklığın bağlantısını kesene veya bağlı cihazın gücünü kapatana kadar geçerli kalacaktır.
+    </string>
+    <string name="perm_description_audio_gain_control">Kulaklık Hoparlör Amplifikasyon Kontrolü</string>
+    <string name="perm_label_audio_gain_control">Kulaklık Hoparlör Amplifikasyon Kontrolü</string>
+</resources>

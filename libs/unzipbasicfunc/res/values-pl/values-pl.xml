@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        Chcesz wzmocnić wyjście audio  zestawu słuchawkowego?\n\n
+        Korzystanie z tej funkcji i słuchanie głośnej muzyki przez długi czas może spowodować uszkodzenie słuchu.\n
+        Uwaga: to ustawienie pozostanie ustawione do momentu odłączenia zestawu słuchawkowego lub wyłączenia zasilania podłączonego urządzenia.
+    </string>
+    <string name="perm_description_audio_gain_control">Sterowanie głośnością zestawu słuchawkowego</string>
+    <string name="perm_label_audio_gain_control">Sterowanie głośnością zestawu słuchawkowego</string>
+</resources>

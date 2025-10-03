@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        Wil je de audio-uitgang van de headset-speaker versterken?\n\n
+        Het gebruik van deze functie en het langdurig luisteren op een hoog volume kan uw gehoor beschadigen.\n
+        Let op: deze instelling blijft staan totdat u de headset loskoppelt of het aangesloten apparaat uitschakelt.
+    </string>
+    <string name="perm_description_audio_gain_control">Headset Luidspreker Versterking Controle:</string>
+    <string name="perm_label_audio_gain_control">Headset Luidspreker Versterking Controle:</string>
+</resources>

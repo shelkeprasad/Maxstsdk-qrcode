@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        Do you want to amplify the audio output of the headset speaker?\n\n
+        Using this function and listening at a high volume for a long time may damage your hearing.\n
+        Please note: this setting will remain set until you disconnect the headset or turn off the power of the connected device.
+    </string>
+    <string name="perm_description_audio_gain_control">Headset Speaker Amplification Control</string>
+    <string name="perm_label_audio_gain_control">Headset Speaker Amplification Control</string>
+</resources>

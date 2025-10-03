@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        Quer amplificar a saída de áudio dos alto-falante?\n\n
+        A utilização desta função e a audição num volume elevado durante muito tempo pode danificar a sua audição.\n
+        Note por favor: esta configuração permanecerá definida até desconecte o dispositivo ou desligar a alimentação do dispositivo ligado.
+    </string>
+    <string name="perm_description_audio_gain_control">Controle de volume do alto-falante Moverio</string>
+    <string name="perm_label_audio_gain_control">Controle de volume do alto-falante Moverio</string>
+</resources>

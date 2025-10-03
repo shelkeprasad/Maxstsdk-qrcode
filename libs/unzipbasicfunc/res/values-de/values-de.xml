@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        Wollen Sie den Pegel des Kopfhörerausgangs verstärken?\n\n
+        Das Nutzen dieser Funktion und Hören mit hoher Lautstärke über einen langen Zeitraum kann ihr Gehör schädigen.\n
+        Bitte beachten Sie: Diese  Einstellung bleibt gespeichtert bis Sie entweder die Verbindung zur Brille trennen oder diese Ausschalten
+    </string>
+    <string name="perm_description_audio_gain_control">Bedienerführung: Kopfhörer-Verstärkungseinstellung</string>
+    <string name="perm_label_audio_gain_control">Bedienerführung: Kopfhörer-Verstärkungseinstellung</string>
+</resources>

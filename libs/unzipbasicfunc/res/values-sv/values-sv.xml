@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        Att lyssna på hög volym under en längre tid kan skada din hörsel.\n\n
+        Observera: den här inställningen förblir inställd tills du kopplar bort headsetet eller stänger av strömmen till den anslutna enheten."
+    </string>
+    <string name="perm_description_audio_gain_control">Ljudvolym Headset</string>
+    <string name="perm_label_audio_gain_control">Ljudvolym Headset</string>
+</resources>

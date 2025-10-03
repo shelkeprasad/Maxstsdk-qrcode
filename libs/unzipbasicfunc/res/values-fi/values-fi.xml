@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        Haluatko vahvistaa Moverio-kaiuttimen äänilähtöä?\n\n
+        Tämän toiminnon käyttäminen ja pitkäaikainen kuuntelu suurella äänenvoimakkuudella voi vahingoittaa kuuloasi.\n
+        Huomautus: Tämä asetus pysyy voimassa, kunnes poistat videolasit tai katkaisee virran kytketystä laitteesta.
+    </string>
+    <string name="perm_description_audio_gain_control">Moverio kaiuttimen vahvistuksen ohjaus</string>
+    <string name="perm_label_audio_gain_control">Moverio kaiuttimen vahvistuksen ohjaus</string>
+</resources>

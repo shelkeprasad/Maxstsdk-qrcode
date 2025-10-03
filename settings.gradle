@@ -1,0 +1,3 @@
+include ':MaxstARSample'
+include ':MaxstARLib'
+include ':BasicFunctionSDKLib'

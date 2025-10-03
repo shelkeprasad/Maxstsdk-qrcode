@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        您要使用头戴显示器的扬声器音量放大功能吗？\n\n
+        如果您使用此功能并长时间以高音量收听，您的听力可能会受损。\n
+        请注意：除非您断开头戴显示器的连接或关闭连接设备的电源，否则此设置将会一直保持。
+    </string>
+    <string name="perm_description_audio_gain_control">头戴显示器的扬声器音量放大控制</string>
+    <string name="perm_label_audio_gain_control">头戴显示器的扬声器音量放大控制</string>
+</resources>

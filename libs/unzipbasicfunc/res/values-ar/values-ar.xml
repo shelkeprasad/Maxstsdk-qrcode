@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        هل تريد تكبير صوت سماعة جهاز الرأس؟\n\n
+        قد يؤدي استخدام هذه الوظيفة والاستماع بصوت عالٍ لفترة طويلة إلى الإضرار بحاسة السمع.\n
+        يرجى ملاحظة: سيظل هذا الإعداد مضبوطًا حتى تقوم بفصل سماعة الرأس أو إيقاف تشغيل  الجهاز.
+    </string>
+    <string name="perm_description_audio_gain_control">التحكم في تكبير صوت سماعة جهاز الرأس</string>
+    <string name="perm_label_audio_gain_control">التحكم في تكبير صوت سماعة جهاز الرأس</string>
+</resources>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        Chcete zesílit zvukový výstup reproduktoru headsetu?\n\n
+        Používání této funkce a poslech při vysoké hlasitosti po dlouhou dobu může poškodit váš sluch.\n
+        Poznámka: toto nastavení zůstane nastaveno, dokud neodpojíte headset nebo nevypnete napájení připojeného zařízení.
+    </string>
+    <string name="perm_description_audio_gain_control">Ovládání zesílení reproduktoru headsetu</string>
+    <string name="perm_label_audio_gain_control">Ovládání zesílení reproduktoru headsetu</string>
+</resources>

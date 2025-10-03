@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="caution_audio_gain_control">
+        Voulez-vous amplifier la sortie audio du haut-parleur du casque ?\n\n
+        L\'utilisation de cette fonction et une écoute prolongée à un volume élevé peuvent endommager votre audition.\n
+        Remarque : ce paramètre restera défini jusqu\'à ce que vous déconnectiez le casque ou que vous éteigniez l\'appareil connecté.
+    </string>
+    <string name="perm_description_audio_gain_control">Contrôle de l\'amplification des haut-parleurs du casque</string>
+    <string name="perm_label_audio_gain_control">Contrôle de l\'amplification des haut-parleurs du casque</string>
+</resources>
