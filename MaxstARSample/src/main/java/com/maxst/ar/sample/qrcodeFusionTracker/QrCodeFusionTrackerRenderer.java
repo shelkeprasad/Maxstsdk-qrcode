@@ -156,18 +156,27 @@ class QrCodeFusionTrackerRenderer implements Renderer {
 
 		     // TODO rendering textview and video
 
-		if (lastQrCodeBoundingBox.get() != null && activity instanceof QrCodeFusionTrackerActivity) {
-			QrCodeFusionTrackerActivity qrActivity = (QrCodeFusionTrackerActivity) activity;
+//		if (lastQrCodeBoundingBox.get() != null && activity instanceof QrCodeFusionTrackerActivity) {
+//			QrCodeFusionTrackerActivity qrActivity = (QrCodeFusionTrackerActivity) activity;
+//
+//			// with video
+//			//activity.runOnUiThread(() -> qrActivity.updateOverlayViews(lastQrCodeBoundingBox.get()));
+//
+//			// only text L & R
+//		//	activity.runOnUiThread(() -> qrActivity.updateOverlayViewLeftAndRight(lastQrCodeBoundingBox.get()));
+//
+//			//TODO 4 step right of qrcode
+//
+//			 activity.runOnUiThread(() -> qrActivity.updateOverlayViewRight1(lastQrCodeBoundingBox.get()));
+//		}
 
-			// with video
-			//activity.runOnUiThread(() -> qrActivity.updateOverlayViews(lastQrCodeBoundingBox.get()));
+		// todo scanqrcode activity
 
-			// only text L & R
-		//	activity.runOnUiThread(() -> qrActivity.updateOverlayViewLeftAndRight(lastQrCodeBoundingBox.get()));
+		if (lastQrCodeBoundingBox.get() != null && activity instanceof ScanQrcodeActivity) {
+			ScanQrcodeActivity qrActivity = (ScanQrcodeActivity) activity;
 
-			//TODO 4 step right of qrcode
 
-			 activity.runOnUiThread(() -> qrActivity.updateOverlayViewRight(lastQrCodeBoundingBox.get()));
+			activity.runOnUiThread(() -> qrActivity.updateOverlayViewRight(lastQrCodeBoundingBox.get()));
 		}
 	}
 

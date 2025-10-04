@@ -7,7 +7,9 @@ package com.maxst.ar.sample.qrcodeFusionTracker;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
@@ -22,6 +24,7 @@ import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.VideoView;
 
 import com.bumptech.glide.Glide;
 import com.google.android.exoplayer2.MediaItem;
@@ -39,6 +42,7 @@ import com.maxst.ar.sample.R;
 import com.maxst.ar.sample.RetrofitClient;
 import com.maxst.ar.sample.util.TrackerResultListener;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
@@ -47,6 +51,12 @@ import java.util.Set;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+
+
+//
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class QrCodeFusionTrackerActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -59,6 +69,8 @@ public class QrCodeFusionTrackerActivity extends AppCompatActivity implements Vi
 	private SimpleExoPlayer exoPlayer;
 	private boolean isVideoStarted = false;
 	private Set<String> detectedQRCodes = new HashSet<>();
+	private final List<TextView> dynamicSteps = new ArrayList<>();
+
 	boolean isTextViewLeftClicked = false;
 	boolean isTextViewRightClicked = false;
 	boolean istvStep1 = false;
@@ -68,6 +80,7 @@ public class QrCodeFusionTrackerActivity extends AppCompatActivity implements Vi
 	private boolean isQrCodeScanned = false;
 	private ImageView imageView;
 	private  TextView tvOpenFileUrl;
+	private String jsonData;
 
 
 	// 3d object
@@ -79,7 +92,35 @@ public class QrCodeFusionTrackerActivity extends AppCompatActivity implements Vi
 
 		setContentView(R.layout.activity_qrcode_fusion_tracker);
 
-		qrCodeTargetRenderer = new QrCodeFusionTrackerRenderer(this);
+
+		RelativeLayout rootLayout = findViewById(R.id.rootLayout);
+
+        // todo getdata
+
+
+		jsonData = getIntent().getStringExtra("jsonData");
+
+		if (jsonData != null) {
+			try {
+				JSONObject jsonObject = new JSONObject(jsonData);
+				JSONArray textViews = jsonObject.getJSONArray("textViews");
+				JSONArray videos = jsonObject.getJSONArray("videos");
+				Log.d("QrCodeFusion", "Received " + textViews.length() + " items");
+
+				for (int i = 0; i < textViews.length(); i++) {
+					String tv = textViews.getString(i);
+					String video = videos.getString(i);
+
+					Log.d("QrCodeFusion", "TextView: " + tv + " | Video: " + video);
+				}
+
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		}
+
+
+        qrCodeTargetRenderer = new QrCodeFusionTrackerRenderer(this);
 		glSurfaceView = (GLSurfaceView) findViewById(R.id.gl_surface_view);
 		glSurfaceView.setEGLContextClientVersion(2);
 		glSurfaceView.setRenderer(qrCodeTargetRenderer);
@@ -100,7 +141,14 @@ public class QrCodeFusionTrackerActivity extends AppCompatActivity implements Vi
 		guideView = (View)findViewById(R.id.guideView);
 		qrCodeTargetRenderer.listener = resultListener;
 
-		playerView = findViewById(R.id.playerView);
+	//	playerView = findViewById(R.id.playerView);
+
+		playerView = new PlayerView(this);
+		playerView.setId(View.generateViewId());
+		playerView.setVisibility(View.GONE);
+
+
+
 		exoPlayer = new SimpleExoPlayer.Builder(this).build();
 		playerView.setPlayer(exoPlayer);
 
@@ -225,6 +273,95 @@ public class QrCodeFusionTrackerActivity extends AppCompatActivity implements Vi
 	public void onClick(View view) {
 
 	}
+
+
+	public void updateOverlayViewRight1(Rect qrCodeBoundingBox) {
+		if (isQrCodeScanned) {
+			return; // Prevent continuous updates
+		}
+
+		if (qrCodeBoundingBox != null && jsonData != null) {
+			int qrX = qrCodeBoundingBox.left;
+			int qrY = qrCodeBoundingBox.top;
+			int qrWidth = qrCodeBoundingBox.width();
+			int qrHeight = qrCodeBoundingBox.height();
+
+			isQrCodeScanned = true;
+
+			// Step position base (relative to QR code)
+			int stepMarginLeft = qrX + qrWidth + 150; // Right of QR Code
+			int stepMarginTop = qrCodeBoundingBox.top - 80; // Start vertically aligned with QR
+
+
+
+				if (jsonData != null) {
+					try {
+						JSONObject jsonObject = new JSONObject(jsonData);
+						JSONArray textViews = jsonObject.getJSONArray("textViews");
+						JSONArray videos = jsonObject.getJSONArray("videos");
+
+						RelativeLayout rootLayout = findViewById(R.id.rootLayout);
+
+						// new
+
+						for (TextView tv : dynamicSteps) {
+							rootLayout.removeView(tv);
+
+						}
+						dynamicSteps.clear();
+
+						for (int i = 0; i < textViews.length(); i++) {
+							String text = textViews.getString(i);
+							String videoPath = videos.optString(i); // same index for video
+
+							TextView tv = new TextView(this);
+							tv.setText(text);
+							tv.setTextColor(Color.WHITE);
+							tv.setTypeface(Typeface.DEFAULT_BOLD);
+							tv.setTextSize(16);
+							tv.setVisibility(View.VISIBLE);
+
+							// Position below each other with spacing
+							RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+									ViewGroup.LayoutParams.WRAP_CONTENT,
+									ViewGroup.LayoutParams.WRAP_CONTENT
+							);
+							params.leftMargin = stepMarginLeft;
+							params.topMargin = stepMarginTop + (i * 80);
+							tv.setLayoutParams(params);
+
+							int finalI = i;
+							tv.setOnClickListener(v -> {
+
+								// toggleStep(tv, text + (finalI + 1), videoPath);
+								toggleStep(tv, text , videoPath);
+
+							});
+
+							rootLayout.addView(tv);
+							dynamicSteps.add(tv);
+
+						}
+
+						RelativeLayout.LayoutParams videoParams = new RelativeLayout.LayoutParams(750, 350);
+						videoParams.leftMargin = 90;
+						videoParams.topMargin = qrY + qrHeight + 250;
+						playerView.setLayoutParams(videoParams);
+
+						rootLayout.addView(playerView);
+
+
+					} catch (JSONException e) {
+						e.printStackTrace();
+					}
+				}
+
+
+
+		}
+	}
+
+
 
 
 	public void updateOverlayViewRight(Rect qrCodeBoundingBox) {
@@ -591,7 +728,43 @@ public class QrCodeFusionTrackerActivity extends AppCompatActivity implements Vi
 	}
 
 
+
 	private void toggleStep(TextView selectedStep, String stepText, String videoPath) {
+		resetAllSteps();
+
+		// If the selected step was already expanded, collapse it
+		if (selectedStep.getMaxLines() == Integer.MAX_VALUE) {
+			selectedStep.setText(stepText);
+			selectedStep.setMaxLines(1);
+
+			if (exoPlayer.isPlaying()) {
+				exoPlayer.stop();
+			}
+			playerView.setVisibility(View.GONE);
+		} else {
+			selectedStep.setText(stepText + " : Showing");
+			selectedStep.setMaxLines(Integer.MAX_VALUE);
+			playerView.setVisibility(View.VISIBLE);
+			setVideoStep(videoPath);
+		}
+	}
+
+	private void resetAllSteps() {
+
+		for (TextView step : dynamicSteps) {
+			step.setMaxLines(1);
+		}
+
+		playerView.setVisibility(View.GONE);
+		if (exoPlayer.isPlaying()) {
+			exoPlayer.stop();
+		}
+	}
+
+
+	// todo 10-4
+
+	/*private void toggleStep(TextView selectedStep, String stepText, String videoPath) {
 		resetAllSteps();
 
 		// If the selected step was already expanded, collapse it
@@ -624,7 +797,7 @@ public class QrCodeFusionTrackerActivity extends AppCompatActivity implements Vi
 		if (exoPlayer.isPlaying()) {
 			exoPlayer.stop();
 		}
-	}
+	}*/
 
 	private void setVideoStep(String videoPath){
 
