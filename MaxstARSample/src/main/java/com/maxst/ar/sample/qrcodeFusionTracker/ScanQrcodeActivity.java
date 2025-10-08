@@ -3,6 +3,7 @@ package com.maxst.ar.sample.qrcodeFusionTracker;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.Typeface;
@@ -15,6 +16,7 @@ import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -24,10 +26,12 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.bumptech.glide.Glide;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
+import com.google.android.exoplayer2.analytics.AnalyticsListener;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.maxst.ar.CameraDevice;
 import com.maxst.ar.MaxstAR;
@@ -63,7 +67,10 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
     private String jsonData;
     private final List<TextView> dynamicSteps = new ArrayList<>();
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 1001;
-    private   int sopId;
+    private int sopId;
+    private String itemId;
+
+    private ImageView imageViewRef;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -100,18 +107,24 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
     }
 
     private void initializeARComponents() {
-        jsonData = getIntent().getStringExtra("jsonData");
+      /*  jsonData = getIntent().getStringExtra("jsonData");
         try {
             JSONObject jsonObject = new JSONObject(jsonData);
            sopId = jsonObject.getInt("sopId");
             Log.d("JSON_DEBUG", "Full JSON:\n" + jsonObject.toString(4)); // pretty print (indent 4)
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }*/
+
+
+        jsonData = getIntent().getStringExtra("jsonData");
+        try {
+            JSONObject jsonObject = new JSONObject(jsonData);
+            // todo later
+            //    itemId = jsonObject.getString("stepId");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
-
-
-
 
         qrCodeTargetRenderer = new QrCodeFusionTrackerRenderer(this);
         glSurfaceView = findViewById(R.id.gl_surface_view);
@@ -124,17 +137,32 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
 
         playerView = new PlayerView(this);
         playerView.setId(View.generateViewId());
-        playerView.setVisibility(View.GONE);
-
         exoPlayer = new SimpleExoPlayer.Builder(this).build();
         playerView.setPlayer(exoPlayer);
 
         // ✅ Initialize MaxstAR only after permission granted
         MaxstAR.init(getApplicationContext(), getResources().getString(R.string.app_key));
         MaxstAR.setScreenOrientation(getResources().getConfiguration().orientation);
+
+
+        // todo touch listner video
+
+        playerView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    if (exoPlayer.isPlaying()) {
+                        exoPlayer.pause();
+                    } else {
+                        exoPlayer.play();
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
+
     }
-
-
 
 
     @Override
@@ -246,10 +274,164 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
         return null;
     }
 
+    private JSONArray getAllItems() {
+        try {
+            String jsonData = loadJSONFromAssets("items.json");
+            JSONObject root = new JSONObject(jsonData);
+            return root.getJSONArray("items");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
 
+    private JSONObject getItemById(String id) {
+        try {
+            String jsonData = loadJSONFromAssets("items.json");
+            JSONObject root = new JSONObject(jsonData);
+            JSONArray itemsArray = root.getJSONArray("items");
+
+            for (int i = 0; i < itemsArray.length(); i++) {
+                JSONObject itemObj = itemsArray.getJSONObject(i);
+                if (itemObj.getString("id").equals(id)) {
+                    return itemObj;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 
     public void updateOverlayViewRight(Rect qrCodeBoundingBox) {
+        if (isQrCodeScanned) return;
+
+        JSONArray itemsArray = getAllItems();
+        if (qrCodeBoundingBox == null || itemsArray == null) return;
+        isQrCodeScanned = true;
+        try {
+            RelativeLayout rootLayout = findViewById(R.id.rootLayout);
+
+            for (int i = 0; i < itemsArray.length(); i++) {
+                JSONObject itemData = itemsArray.getJSONObject(i);
+                String type = itemData.getString("type");
+                String content = itemData.getString("content");
+                JSONObject position = itemData.getJSONObject("position");
+                JSONObject props = itemData.getJSONObject("properties");
+
+                float x = (float) position.getDouble("x");
+                float y = (float) position.getDouble("y");
+
+                String visibility = props.optString("visibility", "visible");
+                int viewVisibility = visibility.equalsIgnoreCase("visible") ? View.VISIBLE : View.GONE;
+
+                if (type.equalsIgnoreCase("text")) {
+                    TextView tv = new TextView(this);
+                    tv.setText(content);
+                    tv.setTextSize(props.optInt("fontSize", 16));
+                    tv.setTextColor(Color.parseColor(props.optString("color", "#FFFFFF")));
+                    tv.setVisibility(viewVisibility);
+
+                    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT);
+
+                    params.leftMargin = (int) x;
+                    params.topMargin = (int) y;
+
+                    rootLayout.addView(tv);
+
+
+                    tv.setOnClickListener(v -> {
+                        if (imageViewRef != null) {
+                            imageViewRef.setVisibility(
+                                    imageViewRef.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE
+                            );
+                        }
+
+                        if (playerView != null) {
+                            if (playerView.getParent() == null) {
+                                rootLayout.addView(playerView);
+
+                                RelativeLayout.LayoutParams videoParams = new RelativeLayout.LayoutParams(
+                                        (int) TypedValue.applyDimension(
+                                                TypedValue.COMPLEX_UNIT_DIP,
+                                                (float) props.optDouble("width", 300),
+                                                getResources().getDisplayMetrics()
+                                        ),
+                                        (int) TypedValue.applyDimension(
+                                                TypedValue.COMPLEX_UNIT_DIP,
+                                                (float) props.optDouble("height", 200),
+                                                getResources().getDisplayMetrics()
+                                        )
+                                );
+                                videoParams.leftMargin = (int) x;
+                                videoParams.topMargin = (int) y;
+                                playerView.setLayoutParams(videoParams);
+                            }
+
+                            if (playerView.getVisibility() == View.VISIBLE) {
+                                playerView.setVisibility(View.GONE);
+                                if (exoPlayer.isPlaying()) exoPlayer.pause();
+                            } else {
+                                playerView.setVisibility(View.VISIBLE);
+                                playerView.bringToFront();
+                                if (!exoPlayer.isPlaying()) exoPlayer.play();
+                            }
+                        }
+                    });
+                } else if (type.equalsIgnoreCase("image")) {
+                    ImageView img = new ImageView(this);
+                    Glide.with(this).load(content).into(img);
+                    img.setVisibility(viewVisibility);
+                    imageViewRef = img;
+
+                    int width = (int) TypedValue.applyDimension(
+                            TypedValue.COMPLEX_UNIT_DIP,
+                            (float) props.optDouble("width", 200),
+                            getResources().getDisplayMetrics());
+                    int height = (int) TypedValue.applyDimension(
+                            TypedValue.COMPLEX_UNIT_DIP,
+                            (float) props.optDouble("height", 200),
+                            getResources().getDisplayMetrics());
+
+                    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
+                    params.leftMargin = (int) x;
+                    params.topMargin = (int) y;
+
+                    rootLayout.addView(img);
+
+                } else if (type.equalsIgnoreCase("video")) {
+                    int width = (int) (props.optDouble("width", 3.0) * 150);
+                    int height = (int) (props.optDouble("height", 2.0) * 150);
+
+                    if (playerView.getParent() == null) {
+                        rootLayout.addView(playerView);
+                        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
+                        params.leftMargin = (int) x;
+                        params.topMargin = (int) y;
+                        playerView.setLayoutParams(params);
+                    }
+                    playerView.setUseController(false);
+
+                    Uri uri = Uri.parse(content);
+                    MediaItem mediaItem = MediaItem.fromUri(uri);
+                    exoPlayer.setMediaItem(mediaItem);
+                    exoPlayer.setPlayWhenReady(false);
+                    exoPlayer.prepare();
+                    playerView.bringToFront();
+                    playerView.setVisibility(viewVisibility);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.e("ScanQrcodeActivity", "updateOverlay error: " + e.getMessage());
+        }
+    }
+
+
+/*    public void updateOverlayViewRight(Rect qrCodeBoundingBox) {
         if (isQrCodeScanned) {
             return;
         }
@@ -276,7 +458,6 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                     dynamicSteps.clear();
 
                     String position = sopData.optString("position", "bottom");
-                  //  String position = "left";
 
                     for (int i = 0; i < stepsArray.length(); i++) {
                         JSONObject stepObj = stepsArray.getJSONObject(i);
@@ -317,7 +498,6 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                             );
 
 
-                            // params.topMargin = qrY + qrHeight + (i * 120);
                             params.topMargin = qrY + qrHeight + extraOffset + (i * 90);
                             params.leftMargin = 50;
                             params.rightMargin = 50;
@@ -365,59 +545,6 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                         dynamicSteps.add(tv);
                     }
 
-                   /* // Video player positioning
-                    RelativeLayout.LayoutParams videoParams = new RelativeLayout.LayoutParams(750, 350);
-                    videoParams.leftMargin = 90;
-                    if (position.equalsIgnoreCase("bottom")) {
-                        int spacing = 80;
-                        int stepsHeight = stepsArray.length() * spacing;
-                        videoParams.topMargin = qrY + qrHeight + stepsHeight + 100;
-                    } else {
-                        videoParams.topMargin = qrY + qrHeight + 400;
-                    }
-                    playerView.setLayoutParams(videoParams);
-                    rootLayout.addView(playerView);*/
-
-
-                    // new
-
-
-
-                    // ✅ Calculate video position dynamically based on the last TextView
-               /*     RelativeLayout.LayoutParams videoParams = new RelativeLayout.LayoutParams(750, 350);
-                    videoParams.leftMargin = qrX; // align with QR or adjust as needed*/
-                    /*  if (!dynamicSteps.isEmpty()) {
-                        // Get the last step TextView
-                        TextView lastStep = dynamicSteps.get(dynamicSteps.size() - 1);
-
-                        // Wait for layout to finish before placing video
-                        lastStep.post(() -> {
-                            int[] location = new int[2];
-                            lastStep.getLocationOnScreen(location);
-                            int lastStepBottom = location[1] + lastStep.getHeight();
-
-                            // Now set video position just below the last TextView
-                            RelativeLayout.LayoutParams dynamicVideoParams = new RelativeLayout.LayoutParams(750, 350);
-                            dynamicVideoParams.leftMargin = qrX;
-                            dynamicVideoParams.topMargin = lastStepBottom ; // small gap below last TextView
-                            playerView.setLayoutParams(dynamicVideoParams);
-
-                            // Add playerView if not already added
-                            if (playerView.getParent() == null) {
-                                rootLayout.addView(playerView);
-                            }
-                        });
-                    } else {
-                        // Fallback: if no steps, place video below QR code
-                        videoParams.topMargin = qrY + qrHeight + 40;
-                        playerView.setLayoutParams(videoParams);
-                        rootLayout.addView(playerView);
-                    }*/
-
-                    //
-
-
-                    // ✅ Correct placement of video below last TextView
                     if (!dynamicSteps.isEmpty()) {
                         TextView lastStep = dynamicSteps.get(dynamicSteps.size() - 1);
 
@@ -472,7 +599,7 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
 
 
         }
-    }
+    }*/
 
     private void toggleStep(TextView selectedStep, String stepText, String videoPath) {
         resetAllSteps();
