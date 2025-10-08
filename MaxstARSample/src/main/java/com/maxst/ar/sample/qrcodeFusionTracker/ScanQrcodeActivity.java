@@ -11,6 +11,7 @@ import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -274,7 +275,7 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                     }
                     dynamicSteps.clear();
 
-                    String position = sopData.optString("position", "right");
+                    String position = sopData.optString("position", "bottom");
                   //  String position = "left";
 
                     for (int i = 0; i < stepsArray.length(); i++) {
@@ -287,7 +288,7 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
 
                         TextView tv = new TextView(this);
                         tv.setText(stepText);
-                        tv.setTextColor(Color.WHITE);
+                        tv.setTextColor(Color.GREEN);
                         tv.setTypeface(Typeface.DEFAULT_BOLD);
                         tv.setTextSize(16);
                         tv.setVisibility(View.VISIBLE);
@@ -307,11 +308,21 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                         else if (position.equalsIgnoreCase("right")) {
                             params.leftMargin = qrX + qrWidth + 150;
                             params.topMargin = qrY + (i * 80);
+                        }else if (position.equalsIgnoreCase("bottom")) {
+
+                            int extraOffset = (int) TypedValue.applyDimension(
+                                    TypedValue.COMPLEX_UNIT_DIP,
+                                    100, // dp value
+                                    getResources().getDisplayMetrics()
+                            );
+
+
+                            // params.topMargin = qrY + qrHeight + (i * 120);
+                            params.topMargin = qrY + qrHeight + extraOffset + (i * 90);
+                            params.leftMargin = 50;
+                            params.rightMargin = 50;
                         }
-                        else if (position.equalsIgnoreCase("bottom")) {
-                            params.leftMargin = qrX;
-                            params.topMargin = qrY + qrHeight + (i * 80);
-                        }
+
                         else if (position.equalsIgnoreCase("center")) {
                             int centerX = qrX + (qrWidth / 2);
                             int centerY = qrY + (qrHeight / 2);
@@ -354,7 +365,7 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                         dynamicSteps.add(tv);
                     }
 
-                    // Video player positioning
+                   /* // Video player positioning
                     RelativeLayout.LayoutParams videoParams = new RelativeLayout.LayoutParams(750, 350);
                     videoParams.leftMargin = 90;
                     if (position.equalsIgnoreCase("bottom")) {
@@ -365,7 +376,93 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                         videoParams.topMargin = qrY + qrHeight + 400;
                     }
                     playerView.setLayoutParams(videoParams);
-                    rootLayout.addView(playerView);
+                    rootLayout.addView(playerView);*/
+
+
+                    // new
+
+
+
+                    // ✅ Calculate video position dynamically based on the last TextView
+               /*     RelativeLayout.LayoutParams videoParams = new RelativeLayout.LayoutParams(750, 350);
+                    videoParams.leftMargin = qrX; // align with QR or adjust as needed*/
+                    /*  if (!dynamicSteps.isEmpty()) {
+                        // Get the last step TextView
+                        TextView lastStep = dynamicSteps.get(dynamicSteps.size() - 1);
+
+                        // Wait for layout to finish before placing video
+                        lastStep.post(() -> {
+                            int[] location = new int[2];
+                            lastStep.getLocationOnScreen(location);
+                            int lastStepBottom = location[1] + lastStep.getHeight();
+
+                            // Now set video position just below the last TextView
+                            RelativeLayout.LayoutParams dynamicVideoParams = new RelativeLayout.LayoutParams(750, 350);
+                            dynamicVideoParams.leftMargin = qrX;
+                            dynamicVideoParams.topMargin = lastStepBottom ; // small gap below last TextView
+                            playerView.setLayoutParams(dynamicVideoParams);
+
+                            // Add playerView if not already added
+                            if (playerView.getParent() == null) {
+                                rootLayout.addView(playerView);
+                            }
+                        });
+                    } else {
+                        // Fallback: if no steps, place video below QR code
+                        videoParams.topMargin = qrY + qrHeight + 40;
+                        playerView.setLayoutParams(videoParams);
+                        rootLayout.addView(playerView);
+                    }*/
+
+                    //
+
+
+                    // ✅ Correct placement of video below last TextView
+                    if (!dynamicSteps.isEmpty()) {
+                        TextView lastStep = dynamicSteps.get(dynamicSteps.size() - 1);
+
+                        lastStep.post(() -> {
+                            // Get position within parent layout
+                            int[] stepLocation = new int[2];
+                            int[] rootLocation = new int[2];
+                            lastStep.getLocationOnScreen(stepLocation);
+                            rootLayout.getLocationOnScreen(rootLocation);
+
+                            int lastStepTopInParent = stepLocation[1] - rootLocation[1];
+                            int lastStepBottom = lastStepTopInParent + lastStep.getHeight();
+
+                            // Get lastStep width and center X
+                            int stepWidth = lastStep.getWidth();
+                            int stepCenterX = (stepLocation[0] - rootLocation[0]) + (stepWidth / 2);
+
+                            // Measure video width to center properly
+                            int videoWidth = 900;
+                            int centeredLeft = stepCenterX - (videoWidth / 2);
+
+                            // Place the video just below the last TextView
+                            RelativeLayout.LayoutParams dynamicVideoParams = new RelativeLayout.LayoutParams(videoWidth, 450);
+                            dynamicVideoParams.leftMargin = Math.max(centeredLeft, 0);
+                            dynamicVideoParams.topMargin = lastStepBottom + 20; // 20px gap
+
+                            playerView.setLayoutParams(dynamicVideoParams);
+
+                            // Add playerView if not already added
+                            if (playerView.getParent() == null) {
+                                rootLayout.addView(playerView);
+                            }
+                        });
+                    } else {
+                        // Fallback: if no steps, place video below QR code
+                        RelativeLayout.LayoutParams videoParams = new RelativeLayout.LayoutParams(750, 350);
+                        int qrCenterX = qrX + (qrWidth / 2);
+                        int centeredLeft = qrCenterX - (750 / 2);
+                        videoParams.leftMargin = Math.max(centeredLeft, 0);
+                        videoParams.topMargin = qrY + qrHeight + 40;
+                        playerView.setLayoutParams(videoParams);
+                        rootLayout.addView(playerView);
+                    }
+
+
                 }
 
             } catch (Exception e) {
