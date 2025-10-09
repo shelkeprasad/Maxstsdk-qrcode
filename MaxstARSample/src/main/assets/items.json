@@ -6,8 +6,8 @@
       "content": "Tap to show/play",
       "position": {
 
-        "x": 150,
-        "y": 250,
+        "x": 450,
+        "y": 150,
         "z": 2.5
 
       },
@@ -23,13 +23,14 @@
       "title": "Tap to view image",
       "content": "https://picsum.photos/400/300",
       "position": {
-        "x": 150,
-        "y": 250,
+        "x": 270,
+        "y": 350,
         "z": 2.5
       },
       "properties": {
-        "width": 2.0,
-        "height": 1.5,
+        "width": 255.0,
+        "height": 185.0,
+
         "fontSize": 16,
         "color": "#00FF00",
         "visibility": "hidden"
@@ -41,8 +42,8 @@
       "title": "Tap to play video",
       "content": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
       "position": {
-        "x": 250,
-        "y": 350,
+        "x":270,
+        "y": 1400,
         "z": 2.5
       },
       "properties": {

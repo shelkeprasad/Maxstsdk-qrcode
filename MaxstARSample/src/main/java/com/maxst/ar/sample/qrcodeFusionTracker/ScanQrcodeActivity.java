@@ -33,6 +33,7 @@ import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
 import com.google.android.exoplayer2.analytics.AnalyticsListener;
 import com.google.android.exoplayer2.ui.PlayerView;
+import com.google.gson.JsonObject;
 import com.maxst.ar.CameraDevice;
 import com.maxst.ar.MaxstAR;
 import com.maxst.ar.TrackerManager;
@@ -51,6 +52,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
 
 public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -68,15 +75,30 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
     private final List<TextView> dynamicSteps = new ArrayList<>();
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 1001;
     private int sopId;
-    private String itemId;
+    private String stepId,token;
 
     private ImageView imageViewRef;
+
+    private ApiService apiService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scan_qrcode);
 
+        try {
+            JSONObject jsonObject = new JSONObject(getIntent().getStringExtra("jsonData"));
+            stepId = jsonObject.getString("stepId");
+            token = jsonObject.getString("token");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl("https://x1dwvr9k-8000.inc1.devtunnels.ms/api/v1/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        apiService = retrofit.create(ApiService.class);
 
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED) {
@@ -88,8 +110,8 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
         } else {
             initializeARComponents();
         }
-    }
 
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
@@ -117,15 +139,6 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
         }*/
 
 
-        jsonData = getIntent().getStringExtra("jsonData");
-        try {
-            JSONObject jsonObject = new JSONObject(jsonData);
-            // todo later
-            //    itemId = jsonObject.getString("stepId");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
         qrCodeTargetRenderer = new QrCodeFusionTrackerRenderer(this);
         glSurfaceView = findViewById(R.id.gl_surface_view);
         glSurfaceView.setEGLContextClientVersion(2);
@@ -144,9 +157,6 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
         MaxstAR.init(getApplicationContext(), getResources().getString(R.string.app_key));
         MaxstAR.setScreenOrientation(getResources().getConfiguration().orientation);
 
-
-        // todo touch listner video
-
         playerView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -161,7 +171,6 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                 return false;
             }
         });
-
     }
 
 
@@ -169,7 +178,6 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
     protected void onResume() {
         super.onResume();
 
-        // Only run AR resume logic if permission granted
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 == PackageManager.PERMISSION_GRANTED) {
 
@@ -304,10 +312,196 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
         return null;
     }
 
+
     public void updateOverlayViewRight(Rect qrCodeBoundingBox) {
+        if (isQrCodeScanned) return;
+        Call<JsonObject> call = apiService.getStepItems(stepId, token);
+
+        call.enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    try {
+
+                        JSONObject apiResponse = new JSONObject(response.body().toString());
+
+                        JSONObject dataObj = apiResponse.optJSONObject("data");
+                        if (dataObj == null) return;
+                        JSONObject arViewObj = dataObj.optJSONObject("arview");
+                        if (arViewObj == null) return;
+                        JSONArray itemsArray = arViewObj.optJSONArray("items");
+                        if (itemsArray == null || qrCodeBoundingBox == null) return;
+
+                        isQrCodeScanned = true;
+                        RelativeLayout rootLayout = findViewById(R.id.rootLayout);
+
+                        for (int i = 0; i < itemsArray.length(); i++) {
+                            JSONObject itemData = itemsArray.getJSONObject(i);
+                            String type = itemData.getString("type");
+                            String content = itemData.getString("content");
+                            JSONObject position = itemData.getJSONObject("position");
+                            JSONObject props = itemData.getJSONObject("properties");
+
+                            float x = (float) position.getDouble("x");
+                            float y = (float) position.getDouble("y");
+
+                            String visibility = props.optString("visibility", "visible");
+                            int viewVisibility = visibility.equalsIgnoreCase("visible") ? View.VISIBLE : View.GONE;
+
+                            if (type.equalsIgnoreCase("text")) {
+                                TextView tv = new TextView(ScanQrcodeActivity.this);
+                                tv.setText(content);
+                                tv.setTextSize(props.optInt("fontSize", 16));
+                                tv.setTextColor(Color.parseColor(props.optString("color", "#FFFFFF")));
+                                tv.setVisibility(viewVisibility);
+
+                                RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                                        ViewGroup.LayoutParams.WRAP_CONTENT);
+                                tv.measure(0, 0);
+                                int textWidth = tv.getMeasuredWidth();
+                                params.leftMargin = (int) (x - textWidth / 2);
+                                params.topMargin = (int) y;
+
+                                rootLayout.addView(tv, params);
+
+                            } else if (type.equalsIgnoreCase("image")) {
+                                TextView tvImg = new TextView(ScanQrcodeActivity.this);
+                                String title = itemData.optString("title", "Tap to view image");
+                                tvImg.setText(title);
+                                tvImg.setTextSize(props.optInt("fontSize", 16));
+                                tvImg.setTextColor(Color.parseColor(props.optString("color", "#FFFFFF")));
+                                tvImg.setVisibility(View.VISIBLE);
+
+                                RelativeLayout.LayoutParams tvImgParams = new RelativeLayout.LayoutParams(
+                                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                                        ViewGroup.LayoutParams.WRAP_CONTENT
+                                );
+                                tvImgParams.leftMargin = (int) x;
+                                tvImgParams.topMargin = (int) y;
+                                rootLayout.addView(tvImg, tvImgParams);
+
+                                ImageView img = new ImageView(ScanQrcodeActivity.this);
+                                Glide.with(ScanQrcodeActivity.this).load(content).into(img);
+                                img.setVisibility(viewVisibility);
+                                imageViewRef = img;
+
+                                int width = (int) TypedValue.applyDimension(
+                                        TypedValue.COMPLEX_UNIT_DIP,
+                                        (float) props.optDouble("width", 200),
+                                        getResources().getDisplayMetrics());
+                                int height = (int) TypedValue.applyDimension(
+                                        TypedValue.COMPLEX_UNIT_DIP,
+                                        (float) props.optDouble("height", 200),
+                                        getResources().getDisplayMetrics());
+
+                                RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
+                                params.leftMargin = (int) x;
+                                params.topMargin = (int) y +120;
+
+                                rootLayout.addView(img, params);
+
+                                tvImg.setOnClickListener(v -> {
+                                    if (img.getVisibility() == View.VISIBLE) {
+                                        img.setVisibility(View.GONE);
+                                    } else {
+                                        img.setVisibility(View.VISIBLE);
+                                        img.bringToFront();
+                                    }
+                                });
+
+                            } else if (type.equalsIgnoreCase("video")) {
+                                TextView tvVid = new TextView(ScanQrcodeActivity.this);
+                                String title = itemData.optString("title", "Tap to play video");
+                                tvVid.setText(title);
+                                tvVid.setTextSize(props.optInt("fontSize", 16));
+                                tvVid.setTextColor(Color.parseColor(props.optString("color", "#FFFFFF")));
+                                tvVid.setVisibility(View.VISIBLE);
+
+                                RelativeLayout.LayoutParams tvVidParams = new RelativeLayout.LayoutParams(
+                                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                                        ViewGroup.LayoutParams.WRAP_CONTENT
+                                );
+                                tvVidParams.leftMargin = (int) x;
+                                tvVidParams.topMargin = (int) y;
+                                rootLayout.addView(tvVid, tvVidParams);
+
+                                int width = (int) (props.optDouble("width", 3.0) * 150);
+                                int height = (int) (props.optDouble("height", 2.0) * 150);
+
+                                if (playerView.getParent() == null) {
+                                    rootLayout.addView(playerView);
+                                    RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
+                                    params.leftMargin = (int) x;
+                                    params.topMargin = (int) y;
+                                    playerView.setLayoutParams(params);
+                                }
+                                playerView.setUseController(false);
+
+                                Uri uri = Uri.parse(content);
+                                MediaItem mediaItem = MediaItem.fromUri(uri);
+                                exoPlayer.setMediaItem(mediaItem);
+                                exoPlayer.setPlayWhenReady(false);
+                                exoPlayer.prepare();
+                                playerView.bringToFront();
+                                playerView.setVisibility(viewVisibility);
+
+                                tvVid.setOnClickListener(v -> {
+                                    if (playerView.getVisibility() == View.VISIBLE) {
+                                        playerView.setVisibility(View.GONE);
+                                        if (exoPlayer.isPlaying()) {
+                                            exoPlayer.pause();
+                                        }
+                                    } else {
+                                        playerView.setVisibility(View.VISIBLE);
+                                        playerView.bringToFront();
+                                        if (!exoPlayer.isPlaying()) {
+                                            exoPlayer.play();
+                                        }
+                                    }
+                                });
+
+                            }
+                        }
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Log.e("ScanQrcodeActivity", "updateOverlay error: " + e.getMessage());
+                    }
+                }else {
+                    Log.e("API_ERROR", "HTTP code: " + response.code()
+                            + ", message: " + response.message()
+                            + ", body: " + response.errorBody());
+                    Toast.makeText(ScanQrcodeActivity.this,
+                            "API call failed: " + response.code(), Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<JsonObject> call, Throwable t) {
+                t.printStackTrace();
+                Toast.makeText(ScanQrcodeActivity.this, "API call failed", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+    }
+
+
+
+
+
+
+
+
+
+
+    // todo asset json
+
+  /*  public void updateOverlayViewRight(Rect qrCodeBoundingBox) {
         if (isQrCodeScanned) return;
 
         JSONArray itemsArray = getAllItems();
+
         if (qrCodeBoundingBox == null || itemsArray == null) return;
         isQrCodeScanned = true;
         try {
@@ -337,51 +531,32 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                             ViewGroup.LayoutParams.WRAP_CONTENT,
                             ViewGroup.LayoutParams.WRAP_CONTENT);
 
-                    params.leftMargin = (int) x;
+
+                    tv.measure(0, 0);
+                    int textWidth = tv.getMeasuredWidth();
+
+                    // Center the text horizontally on 'x'
+                    params.leftMargin = (int) (x - textWidth / 2);
                     params.topMargin = (int) y;
 
-                    rootLayout.addView(tv);
-
-
-                    tv.setOnClickListener(v -> {
-                        if (imageViewRef != null) {
-                            imageViewRef.setVisibility(
-                                    imageViewRef.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE
-                            );
-                        }
-
-                        if (playerView != null) {
-                            if (playerView.getParent() == null) {
-                                rootLayout.addView(playerView);
-
-                                RelativeLayout.LayoutParams videoParams = new RelativeLayout.LayoutParams(
-                                        (int) TypedValue.applyDimension(
-                                                TypedValue.COMPLEX_UNIT_DIP,
-                                                (float) props.optDouble("width", 300),
-                                                getResources().getDisplayMetrics()
-                                        ),
-                                        (int) TypedValue.applyDimension(
-                                                TypedValue.COMPLEX_UNIT_DIP,
-                                                (float) props.optDouble("height", 200),
-                                                getResources().getDisplayMetrics()
-                                        )
-                                );
-                                videoParams.leftMargin = (int) x;
-                                videoParams.topMargin = (int) y;
-                                playerView.setLayoutParams(videoParams);
-                            }
-
-                            if (playerView.getVisibility() == View.VISIBLE) {
-                                playerView.setVisibility(View.GONE);
-                                if (exoPlayer.isPlaying()) exoPlayer.pause();
-                            } else {
-                                playerView.setVisibility(View.VISIBLE);
-                                playerView.bringToFront();
-                                if (!exoPlayer.isPlaying()) exoPlayer.play();
-                            }
-                        }
-                    });
+                    rootLayout.addView(tv, params);
                 } else if (type.equalsIgnoreCase("image")) {
+
+                    TextView tvImg = new TextView(this);
+                    String title = itemData.optString("title", "Tap to view image");
+                    tvImg.setText(title);
+                    tvImg.setTextSize(props.optInt("fontSize", 16));
+                    tvImg.setTextColor(Color.parseColor(props.optString("color", "#FFFFFF")));
+                    tvImg.setVisibility(View.VISIBLE);
+
+                    RelativeLayout.LayoutParams tvImgParams = new RelativeLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    );
+                    tvImgParams.leftMargin = (int) x;
+                    tvImgParams.topMargin = (int) y;
+                    rootLayout.addView(tvImg, tvImgParams);
+
                     ImageView img = new ImageView(this);
                     Glide.with(this).load(content).into(img);
                     img.setVisibility(viewVisibility);
@@ -398,11 +573,36 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
 
                     RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
                     params.leftMargin = (int) x;
-                    params.topMargin = (int) y;
+                    params.topMargin = (int) y +120;
 
-                    rootLayout.addView(img);
+                    rootLayout.addView(img, params);
+
+                    tvImg.setOnClickListener(v -> {
+                        if (img.getVisibility() == View.VISIBLE) {
+                            img.setVisibility(View.GONE);
+                        } else {
+                            img.setVisibility(View.VISIBLE);
+                            img.bringToFront();
+                        }
+                    });
 
                 } else if (type.equalsIgnoreCase("video")) {
+
+                    TextView tvVid = new TextView(this);
+                    String title = itemData.optString("title", "Tap to play video");
+                    tvVid.setText(title);
+                    tvVid.setTextSize(props.optInt("fontSize", 16));
+                    tvVid.setTextColor(Color.parseColor(props.optString("color", "#FFFFFF")));
+                    tvVid.setVisibility(View.VISIBLE);
+
+                    RelativeLayout.LayoutParams tvVidParams = new RelativeLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT
+                    );
+                    tvVidParams.leftMargin = (int) x;
+                    tvVidParams.topMargin = (int) y;
+                    rootLayout.addView(tvVid, tvVidParams);
+
                     int width = (int) (props.optDouble("width", 3.0) * 150);
                     int height = (int) (props.optDouble("height", 2.0) * 150);
 
@@ -422,13 +622,28 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                     exoPlayer.prepare();
                     playerView.bringToFront();
                     playerView.setVisibility(viewVisibility);
+
+                    tvVid.setOnClickListener(v -> {
+                        if (playerView.getVisibility() == View.VISIBLE) {
+                            playerView.setVisibility(View.GONE);
+                            if (exoPlayer.isPlaying()) {
+                                exoPlayer.pause();
+                            }
+                        } else {
+                            playerView.setVisibility(View.VISIBLE);
+                            playerView.bringToFront();
+                            if (!exoPlayer.isPlaying()) {
+                                exoPlayer.play();
+                            }
+                        }
+                    });
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
             Log.e("ScanQrcodeActivity", "updateOverlay error: " + e.getMessage());
         }
-    }
+    }*/
 
 
 /*    public void updateOverlayViewRight(Rect qrCodeBoundingBox) {
