@@ -1,0 +1,24 @@
+{
+  "sops": [
+    {
+      "sopId": 0,
+      "title": "Sop 1: Monthly Preventive Maintenance",
+      "steps": [
+        {"step": "Step 1: Check The Functionality Of Security Interblocks", "video": "sinterlock"},
+        {"step": "Step 2: Check the Electrical connections in the panel", "video": "pmaintanance"},
+        {"step": "Step 3: Check Suction Manifold", "video": "alarmdooropening"},
+        {"step": "Step 4: Check the Lubrication system", "video": "alarmfordischargeget"},
+        {"step": "Step 5: Check the functionality of Pressure roller bearings", "video": "presureroller"}
+      ]
+    },
+    {
+      "sopId": 1,
+      "title": "Sop 2: Monthly Preventive Maintenance in detailed videos",
+      "steps": [
+        {"step": "Step 1: Alarm for Emergency Push Button", "video": "emergencypushbutton"},
+        {"step": "Step 2: Monthly Preventive Maintenance", "video": "electricconnection"},
+        {"step": "Step 3: Alarm for Discharge Gate", "video": "smanifold"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "items": [
+    {
+      "id": "text1",
+      "type": "text",
+      "content": "Tap to show/play",
+      "position": {
+
+        "x": 150,
+        "y": 250,
+        "z": 2.5
+
+      },
+      "properties": {
+        "fontSize": 18,
+        "color": "#FF0000",
+        "visibility": "visible"
+      }
+    },
+    {
+      "id": "image1",
+      "type": "image",
+      "title": "Tap to view image",
+      "content": "https://picsum.photos/400/300",
+      "position": {
+        "x": 150,
+        "y": 250,
+        "z": 2.5
+      },
+      "properties": {
+        "width": 2.0,
+        "height": 1.5,
+        "fontSize": 16,
+        "color": "#00FF00",
+        "visibility": "hidden"
+      }
+    },
+    {
+      "id": "video1",
+      "type": "video",
+      "title": "Tap to play video",
+      "content": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      "position": {
+        "x": 250,
+        "y": 350,
+        "z": 2.5
+      },
+      "properties": {
+        "width": 5.0,
+        "height": 4.0,
+        "fontSize": 16,
+        "color": "#00FF00",
+        "visibility": "hidden",
+        "autoplay": true
+      }
+    }
+  ]
+}
