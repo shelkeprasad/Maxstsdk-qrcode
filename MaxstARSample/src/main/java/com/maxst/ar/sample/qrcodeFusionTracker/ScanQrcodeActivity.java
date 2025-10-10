@@ -11,8 +11,10 @@ import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -75,7 +77,7 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
     private final List<TextView> dynamicSteps = new ArrayList<>();
     private static final int CAMERA_PERMISSION_REQUEST_CODE = 1001;
     private int sopId;
-    private String stepId,token;
+    private String stepId, token;
 
     private ImageView imageViewRef;
 
@@ -95,7 +97,8 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
         }
 
         Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("https://x1dwvr9k-8000.inc1.devtunnels.ms/api/v1/")
+                //   .baseUrl("https://x1dwvr9k-8000.inc1.devtunnels.ms/api/v1/")
+                .baseUrl("https://g79954r8-8000.inc1.devtunnels.ms/api/v1/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         apiService = retrofit.create(ApiService.class);
@@ -348,6 +351,7 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                             String visibility = props.optString("visibility", "visible");
                             int viewVisibility = visibility.equalsIgnoreCase("visible") ? View.VISIBLE : View.GONE;
 
+
                             if (type.equalsIgnoreCase("text")) {
                                 TextView tv = new TextView(ScanQrcodeActivity.this);
                                 tv.setText(content);
@@ -355,16 +359,33 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                                 tv.setTextColor(Color.parseColor(props.optString("color", "#FFFFFF")));
                                 tv.setVisibility(viewVisibility);
 
+                                tv.setSingleLine(false);
+                                tv.setMaxLines(3);
+                                tv.setEllipsize(TextUtils.TruncateAt.END);
+                                tv.setGravity(Gravity.CENTER);
+
                                 RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
                                         ViewGroup.LayoutParams.WRAP_CONTENT,
                                         ViewGroup.LayoutParams.WRAP_CONTENT);
-                                tv.measure(0, 0);
+
+                                int screenWidth = getResources().getDisplayMetrics().widthPixels;
+                                int padding = (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 16, getResources().getDisplayMetrics());
+
+                                int maxTextWidth = screenWidth - (2 * padding);
+                                tv.setMaxWidth(maxTextWidth);
+
+                                tv.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
                                 int textWidth = tv.getMeasuredWidth();
-                                params.leftMargin = (int) (x - textWidth / 2);
+                                int textHeight = tv.getMeasuredHeight();
+                                int left = (int) (x - textWidth / 2);
+                                if (left < padding) left = padding;
+                                if (left + textWidth > screenWidth - padding)
+                                    left = screenWidth - textWidth - padding;
+
+                                params.leftMargin = left;
                                 params.topMargin = (int) y;
 
                                 rootLayout.addView(tv, params);
-
                             } else if (type.equalsIgnoreCase("image")) {
                                 TextView tvImg = new TextView(ScanQrcodeActivity.this);
                                 String title = itemData.optString("title", "Tap to view image");
@@ -397,7 +418,7 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
 
                                 RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
                                 params.leftMargin = (int) x;
-                                params.topMargin = (int) y +120;
+                                params.topMargin = (int) y + 120;
 
                                 rootLayout.addView(img, params);
 
@@ -468,7 +489,7 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                         e.printStackTrace();
                         Log.e("ScanQrcodeActivity", "updateOverlay error: " + e.getMessage());
                     }
-                }else {
+                } else {
                     Log.e("API_ERROR", "HTTP code: " + response.code()
                             + ", message: " + response.message()
                             + ", body: " + response.errorBody());
@@ -485,14 +506,6 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
         });
 
     }
-
-
-
-
-
-
-
-
 
 
     // todo asset json
