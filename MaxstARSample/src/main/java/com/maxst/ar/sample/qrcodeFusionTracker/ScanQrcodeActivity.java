@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
@@ -18,6 +19,9 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -82,6 +86,14 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
     private ImageView imageViewRef;
 
     private ApiService apiService;
+    private ImageView img;
+    private boolean isOverlayRendered = false; // prevent multiple overlays
+
+    private TextView arText;
+    private ImageView arImage;
+
+    private boolean isArItemsCreated = false;
+    private boolean isApiCallInProgress = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -316,7 +328,166 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
     }
 
 
+
     public void updateOverlayViewRight(Rect qrCodeBoundingBox) {
+        RelativeLayout rootLayout = findViewById(R.id.rootLayout);
+
+        float qrCenterX = qrCodeBoundingBox.centerX();
+        float qrCenterY = qrCodeBoundingBox.centerY();
+
+        if (!isArItemsCreated && !isApiCallInProgress) {
+            isApiCallInProgress = true;
+            Call<JsonObject> call = apiService.getStepItems(stepId, token);
+            call.enqueue(new Callback<JsonObject>() {
+                @Override
+                public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+                    isApiCallInProgress = false;
+
+                    if (!response.isSuccessful() || response.body() == null) return;
+
+                    try {
+                        JSONObject dataObj = new JSONObject(response.body().toString()).optJSONObject("data");
+                        if (dataObj == null) return;
+
+                        JSONObject arViewObj = dataObj.optJSONObject("arview");
+                        if (arViewObj == null) return;
+
+                        JSONArray itemsArray = arViewObj.optJSONArray("items");
+                        if (itemsArray == null) return;
+
+                        JSONObject textItemObj = findItemByType(itemsArray, "text");
+                        if (textItemObj != null) {
+                            JSONObject props = textItemObj.optJSONObject("properties");
+                            arText = new TextView(ScanQrcodeActivity.this);
+                            arText.setText("Press Emergency Stop button");
+                            arText.setTextSize(props.optInt("fontSize", 16));
+                            arText.setTextColor(Color.parseColor(props.optString("color", "#FFFFFF")));
+                            arText.setTypeface(Typeface.DEFAULT_BOLD);;
+
+                            RelativeLayout.LayoutParams tvParams = new RelativeLayout.LayoutParams(
+                                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                                    ViewGroup.LayoutParams.WRAP_CONTENT
+                            );
+                            tvParams.leftMargin = (int) (qrCenterX - 100) + 220;
+                            tvParams.topMargin = (int) (qrCenterY - 250);
+                            rootLayout.addView(arText, tvParams);
+                        }
+
+                        JSONObject imageItemObj = findItemByType(itemsArray, "image");
+                        if (imageItemObj != null) {
+                            JSONObject props = imageItemObj.optJSONObject("properties");
+                            arImage = new ImageView(ScanQrcodeActivity.this);
+                            arImage.setTag("AR_IMAGE");
+                            arImage.setAdjustViewBounds(true);
+                            arImage.setImageResource(R.drawable.img12);
+
+                            int width = 150;
+                            int height = 80;
+                            RelativeLayout.LayoutParams imgParams = new RelativeLayout.LayoutParams(width, height);
+                            imgParams.leftMargin = (int) (qrCenterX - width / 2) + 350;
+                            imgParams.topMargin = (int) (qrCenterY + 230);
+                            rootLayout.addView(arImage, imgParams);
+                        }
+
+                        JSONObject videoItemObj = findItemByType(itemsArray, "video");
+                        if (videoItemObj != null) {
+                            String videoContent = videoItemObj.optString("content", "");
+                            JSONObject props = videoItemObj.optJSONObject("properties");
+
+                            exoPlayer = new SimpleExoPlayer.Builder(ScanQrcodeActivity.this).build();
+                            playerView = new PlayerView(ScanQrcodeActivity.this);
+                            playerView.setUseController(false);
+                            playerView.setPlayer(exoPlayer);
+                            playerView.setTag("AR_VIDEO_VIEW");
+
+                            int videoWidth = 550;
+                            int videoHeight = 300;
+                            RelativeLayout.LayoutParams videoParams = new RelativeLayout.LayoutParams(videoWidth, videoHeight);
+                            videoParams.leftMargin = (int) (qrCenterX - videoWidth / 2) + 150;
+                            videoParams.topMargin = (int) (qrCenterY + 330);
+                            playerView.setLayoutParams(videoParams);
+                            playerView.setVisibility(View.GONE);
+                            rootLayout.addView(playerView);
+
+                            MediaItem mediaItem = MediaItem.fromUri(Uri.parse(videoContent));
+                            exoPlayer.setMediaItem(mediaItem);
+                            exoPlayer.prepare();
+
+                            if (arText != null) {
+                                arText.setOnClickListener(v -> {
+                                    if (playerView.getVisibility() == View.VISIBLE) {
+                                        playerView.setVisibility(View.GONE);
+                                        if (exoPlayer.isPlaying()) exoPlayer.pause();
+                                    } else {
+                                        playerView.setVisibility(View.VISIBLE);
+                                        playerView.bringToFront();
+                                        if (!exoPlayer.isPlaying()) exoPlayer.play();
+                                    }
+                                });
+                            }
+                        }
+                        isArItemsCreated = true;
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<JsonObject> call, Throwable t) {
+                    t.printStackTrace();
+                    isApiCallInProgress = false;
+                }
+            });
+        } else if(isArItemsCreated){
+
+            if (arText != null) {
+                RelativeLayout.LayoutParams tvParams = (RelativeLayout.LayoutParams) arText.getLayoutParams();
+                tvParams.leftMargin = (int) (qrCenterX - 100) + 220;
+                tvParams.topMargin = (int) (qrCenterY - 250);
+                arText.setLayoutParams(tvParams);
+            }
+
+            if (arImage != null) {
+                RelativeLayout.LayoutParams imgParams = (RelativeLayout.LayoutParams) arImage.getLayoutParams();
+                imgParams.leftMargin = (int) (qrCenterX - 150 / 2) + 350;
+                imgParams.topMargin = (int) (qrCenterY + 230);
+                arImage.setLayoutParams(imgParams);
+            }
+
+            if (playerView != null) {
+                RelativeLayout.LayoutParams videoParams = (RelativeLayout.LayoutParams) playerView.getLayoutParams();
+                videoParams.leftMargin = (int) (qrCenterX - 550 / 2) + 150;
+                videoParams.topMargin = (int) (qrCenterY + 330);
+                playerView.setLayoutParams(videoParams);
+            }
+        }
+    }
+
+    private JSONObject findItemByType(JSONArray array, String type) {
+        for (int i = 0; i < array.length(); i++) {
+            JSONObject obj = array.optJSONObject(i);
+            if (obj != null && type.equalsIgnoreCase(obj.optString("type"))) {
+                return obj;
+            }
+        }
+        return null;
+    }
+
+    private int dpToPx(float dp) {
+        return Math.round(dp * getResources().getDisplayMetrics().density);
+    }
+
+
+
+
+
+
+
+
+
+
+  /*  public void updateOverlayViewRight(Rect qrCodeBoundingBox) {
         if (isQrCodeScanned) return;
         Call<JsonObject> call = apiService.getStepItems(stepId, token);
 
@@ -355,6 +526,8 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                             if (type.equalsIgnoreCase("text")) {
                                 TextView tv = new TextView(ScanQrcodeActivity.this);
                                 tv.setText(content);
+
+
                                 tv.setTextSize(props.optInt("fontSize", 16));
                                 tv.setTextColor(Color.parseColor(props.optString("color", "#FFFFFF")));
                                 tv.setVisibility(viewVisibility);
@@ -386,13 +559,42 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                                 params.topMargin = (int) y;
 
                                 rootLayout.addView(tv, params);
+
+
+                                tv.setOnClickListener(v ->{
+
+                                    if (img.getVisibility() == View.VISIBLE) {
+                                        img.setVisibility(View.GONE);
+                                    } else {
+                                        img.setVisibility(View.VISIBLE);
+                                        img.bringToFront();
+                                    }
+
+                                    if (playerView.getVisibility() == View.VISIBLE) {
+                                        playerView.setVisibility(View.GONE);
+                                        if (exoPlayer.isPlaying()) {
+                                            exoPlayer.pause();
+                                        }
+                                    } else {
+                                        playerView.setVisibility(View.VISIBLE);
+                                        playerView.bringToFront();
+                                        if (!exoPlayer.isPlaying()) {
+                                            exoPlayer.play();
+                                        }
+                                    }
+
+
+
+                                });
+
+
                             } else if (type.equalsIgnoreCase("image")) {
                                 TextView tvImg = new TextView(ScanQrcodeActivity.this);
                                 String title = itemData.optString("title", "Tap to view image");
                                 tvImg.setText(title);
                                 tvImg.setTextSize(props.optInt("fontSize", 16));
                                 tvImg.setTextColor(Color.parseColor(props.optString("color", "#FFFFFF")));
-                                tvImg.setVisibility(View.VISIBLE);
+                                tvImg.setVisibility(View.GONE);
 
                                 RelativeLayout.LayoutParams tvImgParams = new RelativeLayout.LayoutParams(
                                         ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -402,23 +604,27 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                                 tvImgParams.topMargin = (int) y;
                                 rootLayout.addView(tvImg, tvImgParams);
 
-                                ImageView img = new ImageView(ScanQrcodeActivity.this);
-                                Glide.with(ScanQrcodeActivity.this).load(content).into(img);
+                                img = new ImageView(ScanQrcodeActivity.this);
+                             //   Glide.with(ScanQrcodeActivity.this).load(content).into(img);
+                                img.setImageResource(R.drawable.img12);
                                 img.setVisibility(viewVisibility);
                                 imageViewRef = img;
 
-                                int width = (int) TypedValue.applyDimension(
+                               *//* int width = (int) TypedValue.applyDimension(
                                         TypedValue.COMPLEX_UNIT_DIP,
                                         (float) props.optDouble("width", 200),
                                         getResources().getDisplayMetrics());
                                 int height = (int) TypedValue.applyDimension(
                                         TypedValue.COMPLEX_UNIT_DIP,
                                         (float) props.optDouble("height", 200),
-                                        getResources().getDisplayMetrics());
+                                        getResources().getDisplayMetrics());*//*
+
+                                int width= 300;
+                                int height =150;
 
                                 RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(width, height);
-                                params.leftMargin = (int) x;
-                                params.topMargin = (int) y + 120;
+                                params.leftMargin = (int) 650;
+                                params.topMargin = (int) y + 580;
 
                                 rootLayout.addView(img, params);
 
@@ -437,7 +643,7 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                                 tvVid.setText(title);
                                 tvVid.setTextSize(props.optInt("fontSize", 16));
                                 tvVid.setTextColor(Color.parseColor(props.optString("color", "#FFFFFF")));
-                                tvVid.setVisibility(View.VISIBLE);
+                                tvVid.setVisibility(View.GONE);
 
                                 RelativeLayout.LayoutParams tvVidParams = new RelativeLayout.LayoutParams(
                                         ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -483,6 +689,47 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                                 });
 
                             }
+
+                            else if (type.equalsIgnoreCase("button")) {
+
+                                ImageButton mediaButton = new ImageButton(ScanQrcodeActivity.this);
+                                mediaButton.setBackgroundColor(Color.TRANSPARENT);
+                                mediaButton.setScaleType(ImageView.ScaleType.CENTER_CROP);
+                                Glide.with(ScanQrcodeActivity.this).load(content).into(mediaButton);
+                                mediaButton.setVisibility(View.GONE);
+
+
+                                // Button size and position
+                                int btnWidth = (int) TypedValue.applyDimension(
+                                        TypedValue.COMPLEX_UNIT_DIP,
+                                        (float) props.optDouble("width", 100),
+                                        getResources().getDisplayMetrics());
+                                int btnHeight = (int) TypedValue.applyDimension(
+                                        TypedValue.COMPLEX_UNIT_DIP,
+                                        (float) props.optDouble("height", 100),
+                                        getResources().getDisplayMetrics());
+
+                                RelativeLayout.LayoutParams btnParams = new RelativeLayout.LayoutParams(btnWidth, btnHeight);
+                                btnParams.leftMargin = (int) x;
+                                btnParams.topMargin = (int) y;
+                                rootLayout.addView(mediaButton, btnParams);
+
+                                //
+                                mediaButton.setOnClickListener(v -> {
+                                    if (img.getVisibility() == View.VISIBLE) {
+                                        img.setVisibility(View.GONE);
+                                    } else {
+                                        img.setVisibility(View.VISIBLE);
+                                        img.bringToFront();
+                                    }
+                                });
+
+                                //
+
+                            }
+
+
+                            //
                         }
 
                     } catch (Exception e) {
@@ -505,7 +752,7 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
             }
         });
 
-    }
+    }*/
 
 
     // todo asset json
