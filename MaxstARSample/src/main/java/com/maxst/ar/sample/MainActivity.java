@@ -151,7 +151,10 @@ public class MainActivity extends Activity implements View.OnClickListener {
             startActivity(new Intent(MainActivity.this, InstantFusionTrackerActivity.class));
         } else if (view.getId() == R.id.space_target) {
            // startActivity(new Intent(MainActivity.this, SpaceTrackerActivity.class));
-            startActivity(new Intent(MainActivity.this, ModelViewActivity.class));
+
+           // startActivity(new Intent(MainActivity.this, ModelViewActivity.class));
+
+            startActivity(new Intent(MainActivity.this, ModelActivity.class));
         } else if (view.getId() == R.id.settings) {
             startActivity(new Intent(MainActivity.this, SettingsActivity.class));
         }

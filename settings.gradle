@@ -1,2 +1,43 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+        maven { url 'https://jitpack.io' }
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+    }
+}
 include ':MaxstARSample'
+
+
+
+//rootProject.name = "MyProject"
+//
+//// Your existing module
+//include ':MaxstARSample'
+//
+//// Add this block exactly once
+//dependencyResolutionManagement {
+//    repositories {
+//        google()
+//        mavenCentral()
+//
+//        // Local AAR repository for Filament
+//        flatDir {
+//            dirs 'MAXSTARSDK_Android_6.2.1/FilamentRepo'
+//        }
+//    }
+//}
+
+
+
+
 

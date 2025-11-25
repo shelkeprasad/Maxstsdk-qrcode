@@ -111,22 +111,6 @@ public class MarkerTrackerActivity extends AppCompatActivity implements View.OnC
 		MaxstAR.deinit();
 	}
 
-/*	@Override
-	public void onClick(View view) {
-		switch (view.getId()) {
-			case R.id.normal_tracking:
-				TrackerManager.getInstance().setTrackingOption(TrackerManager.TrackingOption.NORMAL_TRACKING);
-				//TrackerManager.getInstance().setTrackingOption(TrackerManager.TrackingOption.JITTER_REDUCTION_DEACTIVATION);
-				TrackerManager.getInstance().setTrackingOption(TrackerManager.TrackingOption.JITTER_REDUCTION_ACTIVATION);
-				break;
-
-			case R.id.enhanced_tracking:
-				TrackerManager.getInstance().setTrackingOption(TrackerManager.TrackingOption.ENHANCED_TRACKING);
-				TrackerManager.getInstance().setTrackingOption(TrackerManager.TrackingOption.JITTER_REDUCTION_ACTIVATION);
-				break;
-		}
-	}*/
-
 	@Override
 	public void onClick(View view) {
 		if (view.getId() == R.id.normal_tracking) {

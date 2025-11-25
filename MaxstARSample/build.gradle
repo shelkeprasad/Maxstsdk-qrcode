@@ -20,6 +20,10 @@ android {
 		versionCode 1
 		versionName "6.2.1"
 		testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+//
+//        ndk {
+//            abiFilters "armeabi-v7a", "arm64-v8a"
+//        }
 	}
 	buildTypes {
 		release {
@@ -35,10 +39,26 @@ android {
 	namespace 'com.maxst.ar.sample'
 }
 
+//configurations.all {
+//	resolutionStrategy {
+//		force "com.google.android.filament:filament-android:1.67.0"
+//		force "com.google.android.filament:gltfio-android:1.67.0"
+//		force "com.google.android.filament:filament-utils-android:1.67.0"
+//	}
+//}
+
+//repositories {
+//	// Make sure this is in the app-module build.gradle (or in your settings if using new Gradle)
+//	flatDir {
+//		dirs 'libs'
+//	}
+//}
+
 dependencies {
 	implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.activity:activity:1.10.1'
+
 	androidTestImplementation('com.android.support.test.espresso:espresso-core:2.2.2', {
 		exclude group: 'com.android.support', module: 'support-annotations'
 	})
@@ -48,6 +68,24 @@ dependencies {
 	implementation files("$MAXSTAR_SDK_DIR/VideoPlayer.jar")
 	implementation files("$MAXSTAR_SDK_DIR/MaxstAR.aar")
 	implementation files("$MAXSTAR_SDK_DIR/BasicFunctionSDK_1.2.1.aar")
+
+    // new .aar
+
+//    implementation files("$MAXSTAR_SDK_DIR/filament-v1.36.0-android.aar")
+//    implementation files("$MAXSTAR_SDK_DIR/filament-utils-v1.36.0-android.aar")
+//    implementation files("$MAXSTAR_SDK_DIR/gltfio-v1.36.0-android.aar")
+//    implementation files("$MAXSTAR_SDK_DIR/filamat-v1.36.0-lite-android.aar")
+
+
+//	implementation(name: 'filament-v1.36.0-android', ext: 'aar')
+//	implementation(name: 'filament-utils-v1.36.0-android', ext: 'aar')
+//	implementation(name: 'gltfio-v1.36.0-android', ext: 'aar')
+//	implementation(name: 'filamat-v1.36.0-lite-android', ext: 'aar')
+
+    // end
+
+
+
 	implementation 'com.google.android.exoplayer:exoplayer:2.19.1'
 	implementation 'com.squareup.retrofit2:retrofit:2.9.0'
 	implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
@@ -64,8 +102,78 @@ dependencies {
 //
 //	}
 
-	implementation "com.gorisse.thomas.sceneform:sceneform:1.23.0"
-	//implementation 'com.google.ar.sceneform.ux:sceneform-ux:1.17.1'
+	// todo working
+
+	   implementation "com.gorisse.thomas.sceneform:sceneform:1.23.0"
+
+//	implementation "com.gorisse.thomas.sceneform:sceneform:1.30.0"
+
+
+
+//	implementation "io.github.sceneview:sceneview:2.0.1"
+//	implementation "io.github.sceneview:gltf:2.0.1"
+//	implementation "io.github.sceneview:math:2.0.1"
+
+
+//	implementation "com.github.SceneView:sceneform:1.23.1"
+//	implementation "com.github.SceneView:sceneview:1.23.1"
+//	implementation "com.github.SceneView:animation:1.23.1"
+
+//
+//	implementation 'com.gorisse.thomas.sceneform:sceneform:1.17.1'
+//
+//	implementation 'com.gorisse.thomas.sceneform:ux:1.17.1'
+//	implementation 'com.gorisse.thomas.sceneform:sceneform-assets:1.17.1'
+//
+//	implementation "com.gorisse.thomas.sceneform:sceneform:1.19.3"
+
 	implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
+
+
+//	implementation 'com.google.android.filament:filament-android:1.39.1'
+//	implementation 'com.google.android.filament:gltfio-android:1.39.1'
+//	implementation 'com.google.android.filament:filamesh-android:1.39.1'
+
+
+//	implementation "com.google.android.filament:filament-android:1.29.0"
+//	implementation "com.google.android.filament:gltfio-android:1.29.0"
+//	implementation "com.google.android.filament:gltfio-android-ktx:1.29.0"
+//	implementation "com.google.android.filament:filamesh-android:1.29.0"
+//	implementation "com.google.android.filament:filament-utils-android:1.29.0"
+
+
+	//implementation 'com.google.android.filament:filament-android:1.67.0'
+
+//	implementation "com.google.android.filament:filament-android:1.30.0"
+//	implementation "com.google.android.filament:gltfio-android:1.30.0"
+
+//	implementation "com.google.android.filament:filament-android:1.20.0"
+//	implementation "com.google.android.filament:gltfio-android:1.20.0"
+
+
+//	implementation "com.google.android.filament:filament-android:1.44.0"
+//	implementation "com.google.android.filament:gltfio-android:1.44.0"
+//	implementation "com.google.android.filament:gltfio-android-ktx:1.44.0"
+
+
+//	implementation "com.google.android.filament:filament-android:1.50.0"
+//	implementation "com.google.android.filament:gltfio-android:1.50.0"
+//	implementation "com.google.android.filament:gltfio-android-ktx:1.50.0"
+
+
+//	implementation "com.google.android.filament:filament-android:1.67.0"
+//	implementation "com.google.android.filament:gltfio-android:1.67.0"
+//	implementation "com.google.android.filament:filament-utils-android:1.67.0"
+
+
+//	implementation "com.google.android.filament:filament-android:1.36.0"
+//	implementation "com.google.android.filament:gltfio-android:1.36.0"
+//	implementation "com.google.android.filament:filament-utils-android:1.36.0"
+
+
+	// implementation fileTree(dir: 'libs', include: ['*.aar'])
+
+
+
 
 }
