@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.os.Bundle;
+
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.util.Log;
@@ -47,83 +48,76 @@ import java.util.List;
 
 public class ImageTrackerActivity extends AppCompatActivity implements View.OnClickListener {
 
-	private ImageTrackerRenderer imageTargetRenderer;
-	private GLSurfaceView glSurfaceView;
-	private int preferCameraResolution = 0;
-	private Sceneform sceneformView;
-	private SurfaceView sceneformSurfaceView;
-	private SceneView sceneView;
-	private Scene scene;
-	private Node modelNode;
+    private ImageTrackerRenderer imageTargetRenderer;
+    private GLSurfaceView glSurfaceView;
+    private int preferCameraResolution = 0;
+    private Sceneform sceneformView;
+    private SurfaceView sceneformSurfaceView;
+    private SceneView sceneView;
+    private Scene scene;
+    private Node modelNode;
 
-	private ModelRenderable modelRenderable;
-	private ModelAnimator modelAnimator;
+    private ModelRenderable modelRenderable;
+    private ModelAnimator modelAnimator;
 
-	private volatile long lastSeenNs = 0L;
-	private static final long HIDE_DELAY_NS = 200L * 1000000L; // 200 ms
+    private volatile long lastSeenNs = 0L;
+    private static final long HIDE_DELAY_NS = 200L * 1000000L; // 200 ms
 
+    private static final float SCALE_FACTOR = 1.0f;
 
-	// CHANGED: scale factor to reduce size (0.20 = 80% smaller than full width scale)
-	private static final float SCALE_FACTOR = 1.0f;
-
-	private float[] lastWorldMatrix = new float[16];
+    private float[] lastWorldMatrix = new float[16];
 
 
-	//
-	// last seen timestamp to quickly hide when lost
-	private volatile long lastSeenMs = 0L;
+    //
+    // last seen timestamp to quickly hide when lost
+    private volatile long lastSeenMs = 0L;
 
-	// stored last transform for smoothing & preventing jumps when lost (keeps last stable pose)
-	private boolean hasLastWorld = false;
+    // stored last transform for smoothing & preventing jumps when lost (keeps last stable pose)
+    private boolean hasLastWorld = false;
 
-	private static final long HIDE_DELAY_MS = 200;        // CHANGED: hide delay after target lost (ms)
-	private static final float SMOOTHING = 0.35f;
+    private static final long HIDE_DELAY_MS = 200;        // CHANGED: hide delay after target lost (ms)
+    private static final float SMOOTHING = 0.35f;
 
+    private float[] lastStableWorld = new float[16];   // last stable pose
+    private boolean hasStable = false;
 
-
-	// -------- NEW STABILITY VARIABLES --------
-	private float[] lastStableWorld = new float[16];   // last stable pose
-	private boolean hasStable = false;
-
-	private long lastSeenTime = 0;     // Timestamp of last valid detection
-	private static final long LOST_TIMEOUT_MS = 150;   // hide after 150ms
+    private long lastSeenTime = 0;     // Timestamp of last valid detection
+    private static final long LOST_TIMEOUT_MS = 150;   // hide after 150ms
 
 
-
-	private float[] stablePose = new float[16];
-	private boolean hasStablePose = false;
-	private long lastStableTime = 0L;
-	private static final long STABLE_TIMEOUT_NS = 150_000_000; // 150ms
-
-
-	private Vector3 lastPos = null;
-	private Quaternion lastRot = null;
-
-	private final float SMOOTH_POS = 0.15f;
-	private final float SMOOTH_ROT = 0.15f;
+    private float[] stablePose = new float[16];
+    private boolean hasStablePose = false;
+    private long lastStableTime = 0L;
+    private static final long STABLE_TIMEOUT_NS = 150_000_000; // 150ms
 
 
-	private float offsetX = 0f;
-	private float offsetY = 0f;
-	private float offsetZ = 0f;
+    private Vector3 lastPos = null;
+    private Quaternion lastRot = null;
+
+    private final float SMOOTH_POS = 0.15f;
+    private final float SMOOTH_ROT = 0.15f;
 
 
-	private static final float DISTANCE_MOVE_THRESHOLD = 0.03f;
-	private static final float OFFSET_STEP_FORWARD = 0.02f;
-	private static final float OFFSET_STEP_BACK = 0.01f;
-	private static final float OFFSET_MAX = 0.8f;
+    private float offsetX = 0f;
+    private float offsetY = 0f;
+    private float offsetZ = 0f;
 
 
-	private boolean cameraMovingAway = false;
+    private static final float DISTANCE_MOVE_THRESHOLD = 0.03f;
+    private static final float OFFSET_STEP_FORWARD = 0.02f;
+    private static final float OFFSET_STEP_BACK = 0.01f;
+    private static final float OFFSET_MAX = 0.8f;
 
 
+    private boolean cameraMovingAway = false;
 
-	private float initialX = 0;
-	private float initialY = 0;
-	private float initialZ = 0;
-	private boolean initialPoseSaved = false;
 
-	private float lastDistance = 0;
+    private float initialX = 0;
+    private float initialY = 0;
+    private float initialZ = 0;
+    private boolean initialPoseSaved = false;
+
+    private float lastDistance = 0;
 
 
     float centerX = 0;
@@ -135,62 +129,57 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
     boolean sentCenter = false;
 
 
-
     @Override
-	protected void onCreate(Bundle savedInstanceState) {
-		super.onCreate(savedInstanceState);
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
 
-		setContentView(R.layout.activity_image_tracker);
+        setContentView(R.layout.activity_image_tracker);
 
-		findViewById(R.id.normal_tracking).setOnClickListener(this);
-		findViewById(R.id.extended_tracking).setOnClickListener(this);
-		findViewById(R.id.multi_tracking).setOnClickListener(this);
+        findViewById(R.id.normal_tracking).setOnClickListener(this);
+        findViewById(R.id.extended_tracking).setOnClickListener(this);
+        findViewById(R.id.multi_tracking).setOnClickListener(this);
 
-		imageTargetRenderer = new ImageTrackerRenderer(this);
-		glSurfaceView = (GLSurfaceView) findViewById(R.id.gl_surface_view);
-		glSurfaceView.setEGLContextClientVersion(2);
-		glSurfaceView.setRenderer(imageTargetRenderer);
+        imageTargetRenderer = new ImageTrackerRenderer(this);
+        glSurfaceView = (GLSurfaceView) findViewById(R.id.gl_surface_view);
+        glSurfaceView.setEGLContextClientVersion(2);
+        glSurfaceView.setRenderer(imageTargetRenderer);
 
-		MaxstAR.init(this.getApplicationContext(), getResources().getString(R.string.app_key));
+        MaxstAR.init(this.getApplicationContext(), getResources().getString(R.string.app_key));
 
-		MaxstAR.setScreenOrientation(getResources().getConfiguration().orientation);
+        MaxstAR.setScreenOrientation(getResources().getConfiguration().orientation);
 
-		TrackerManager.getInstance().startTracker(TrackerManager.TRACKER_TYPE_IMAGE);
-		TrackerManager.getInstance().addTrackerData("ImageTarget/Glacier.2dmap", true);
-		TrackerManager.getInstance().addTrackerData("ImageTarget/Lego.2dmap", true);
-		TrackerManager.getInstance().addTrackerData("ImageTarget/Blocks.2dmap", true);
-		TrackerManager.getInstance().addTrackerData("ImageTarget/FetteMachine.2dmap", true);
+        TrackerManager.getInstance().startTracker(TrackerManager.TRACKER_TYPE_IMAGE);
+        TrackerManager.getInstance().addTrackerData("ImageTarget/Glacier.2dmap", true);
+        TrackerManager.getInstance().addTrackerData("ImageTarget/Lego.2dmap", true);
+        TrackerManager.getInstance().addTrackerData("ImageTarget/Blocks.2dmap", true);
+        TrackerManager.getInstance().addTrackerData("ImageTarget/FetteMachine.2dmap", true);
 
 
 //		TrackerManager.getInstance().addTrackerData("{\"image\":\"add_image\",\"image_path\":\"ImageTarget/Blocks.png\",\"image_width\":0.26,\"inclusion\":[{\"x\":50, \"y\":100, \"width\":400, \"height\":400}, {\"x\":400, \"y\":80, \"width\":400, \"height\":400}], \"exclusion\":[{\"x\":200, \"y\":200, \"width\":150, \"height\":150}]}", true);
-		//TrackerManager.getInstance().addTrackerData("{\"image\":\"add_image\",\"image_path\":\"ImageTarget/Blocks.png\",\"image_width\":0.26}", true);
-		//TrackerManager.getInstance().addTrackerData("{\"image\":\"add_image\",\"image_path\":\"ImageTarget/Glacier.png\",\"image_width\":0.26}", true);
-		//TrackerManager.getInstance().addTrackerData("{\"image\":\"add_image\",\"image_path\":\"/sdcard/Download/sample/Blocks.png\",\"image_width\":0.26}", false);
-		//TrackerManager.getInstance().addTrackerData("{\"image\":\"add_image\",\"image_path\":\"/sdcard/Download/sample/Glacier.png\",\"image_width\":0.26}", false);
-		TrackerManager.getInstance().loadTrackerData();
+        //TrackerManager.getInstance().addTrackerData("{\"image\":\"add_image\",\"image_path\":\"ImageTarget/Blocks.png\",\"image_width\":0.26}", true);
+        //TrackerManager.getInstance().addTrackerData("{\"image\":\"add_image\",\"image_path\":\"ImageTarget/Glacier.png\",\"image_width\":0.26}", true);
+        //TrackerManager.getInstance().addTrackerData("{\"image\":\"add_image\",\"image_path\":\"/sdcard/Download/sample/Blocks.png\",\"image_width\":0.26}", false);
+        //TrackerManager.getInstance().addTrackerData("{\"image\":\"add_image\",\"image_path\":\"/sdcard/Download/sample/Glacier.png\",\"image_width\":0.26}", false);
+        TrackerManager.getInstance().loadTrackerData();
 
-		preferCameraResolution = getSharedPreferences(SampleUtil.PREF_NAME, Activity.MODE_PRIVATE).getInt(SampleUtil.PREF_KEY_CAM_RESOLUTION, 0);
-	}
-
-
+        preferCameraResolution = getSharedPreferences(SampleUtil.PREF_NAME, Activity.MODE_PRIVATE).getInt(SampleUtil.PREF_KEY_CAM_RESOLUTION, 0);
+    }
 
 
-	private void initSceneformOverlay() {
-		sceneView = findViewById(R.id.sceneView);
-		sceneView.setTransparent(true);
-		sceneView.getHolder().setFormat(PixelFormat.TRANSLUCENT);
-		sceneView.setTransparent(true);
+    private void initSceneformOverlay() {
+        sceneView = findViewById(R.id.sceneView);
+        sceneView.setTransparent(true);
+        sceneView.getHolder().setFormat(PixelFormat.TRANSLUCENT);
+        sceneView.setTransparent(true);
 
-		scene = sceneView.getScene();
-
+        scene = sceneView.getScene();
 
 
         //
 
 
         modelNode = new Node();
-		scene.addChild(modelNode);
-
+        scene.addChild(modelNode);
 
 
         // ---------- DISABLE SCENEFORM CAMERA MOTION ----------
@@ -204,149 +193,145 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
 //        });
 
 
-
         ModelRenderable.builder()
-				//.setSource(this, Uri.parse("file:///android_asset/Jumping.glb"))
-			//	.setSource(this, Uri.parse("file:///android_asset/Bee.glb"))
-			//	.setSource(this, Uri.parse("file:///android_asset/vending_machine.glb"))
-		//		.setSource(this, Uri.parse("file:///android_asset/generator.glb"))
-				.setSource(this, Uri.parse("file:///android_asset/pneumatic_engine.glb"))
+                //.setSource(this, Uri.parse("file:///android_asset/Jumping.glb"))
+                //	.setSource(this, Uri.parse("file:///android_asset/Bee.glb"))
+                //	.setSource(this, Uri.parse("file:///android_asset/vending_machine.glb"))
+                //		.setSource(this, Uri.parse("file:///android_asset/generator.glb"))
+                .setSource(this, Uri.parse("file:///android_asset/pneumatic_engine.glb"))
 
 
+                //	.setSource(this, Uri.parse("file:///android_asset/platen_press.glb"))
+                //	.setSource(this, Uri.parse("file:///android_asset/operating_machine.glb"))
+                .setIsFilamentGltf(true)
+                .build()
+                .thenAccept(renderable -> {
+                    modelRenderable = renderable;
+                    modelNode.setRenderable(renderable);
+
+                    RenderableInstance instance = modelNode.getRenderableInstance();
+                    modelNode.setEnabled(false);
+                    // Get the animation name from instance
+                    List<String> animNames = instance.getAnimationNames();
+                    if (animNames.isEmpty()) {
+                        Log.w("ARAnimation", "No animations found in the model");
+                        return;
+                    }
+                    String animationName = animNames.get(0); // or pick based on your glb
+
+                    // Use ObjectAnimator from maintained Sceneform
+                    ObjectAnimator animator = ModelAnimator.ofAnimation(instance, animationName);
+                    animator.setRepeatCount(ValueAnimator.INFINITE);
+                    //	animator.start();
+
+                })
+                .exceptionally(throwable -> {
+                    // handle load error
+                    throwable.printStackTrace();
+                    return null;
+                });
+    }
 
 
-			//	.setSource(this, Uri.parse("file:///android_asset/platen_press.glb"))
-			//	.setSource(this, Uri.parse("file:///android_asset/operating_machine.glb"))
-			//	.setSource(this, Uri.parse("file:///android_asset/Jumping.glb"))
-				.setIsFilamentGltf(true)
-				.build()
-				.thenAccept(renderable -> {
-					modelRenderable = renderable;
-					modelNode.setRenderable(renderable);
+    @Override
+    protected void onResume() {
+        super.onResume();
 
-					RenderableInstance instance = modelNode.getRenderableInstance();
-					modelNode.setEnabled(false);
-					// Get the animation name from instance
-					List<String> animNames = instance.getAnimationNames();
-					if (animNames.isEmpty()) {
-						Log.w("ARAnimation", "No animations found in the model");
-						return;
-					}
-					String animationName = animNames.get(0); // or pick based on your glb
+        glSurfaceView.onResume();
+        TrackerManager.getInstance().startTracker(TrackerManager.TRACKER_TYPE_IMAGE);
 
-					// Use ObjectAnimator from maintained Sceneform
-					ObjectAnimator animator = ModelAnimator.ofAnimation(instance, animationName);
-					animator.setRepeatCount(ValueAnimator.INFINITE);
-				//	animator.start();
+        ResultCode resultCode = ResultCode.Success;
+        switch (preferCameraResolution) {
+            case 0:
+                resultCode = CameraDevice.getInstance().start(0, 640, 480);
+                break;
 
-				})
-				.exceptionally(throwable -> {
-					// handle load error
-					throwable.printStackTrace();
-					return null;
-				});
-	}
+            case 1:
+                resultCode = CameraDevice.getInstance().start(0, 1280, 720);
+                break;
+
+            case 2:
+                resultCode = CameraDevice.getInstance().start(0, 1920, 1080);
+                break;
+        }
+
+        if (resultCode != ResultCode.Success) {
+            Toast.makeText(this, R.string.camera_open_fail, Toast.LENGTH_SHORT).show();
+            finish();
+        }
+
+        MaxstAR.onResume();
 
 
-	@Override
-	protected void onResume() {
-		super.onResume();
-
-		glSurfaceView.onResume();
-		TrackerManager.getInstance().startTracker(TrackerManager.TRACKER_TYPE_IMAGE);
-
-		ResultCode resultCode = ResultCode.Success;
-		switch (preferCameraResolution) {
-			case 0:
-				resultCode = CameraDevice.getInstance().start(0, 640, 480);
-				break;
-
-			case 1:
-				resultCode = CameraDevice.getInstance().start(0, 1280, 720);
-				break;
-
-			case 2:
-				resultCode = CameraDevice.getInstance().start(0, 1920, 1080);
-				break;
-		}
-
-		if (resultCode != ResultCode.Success) {
-			Toast.makeText(this, R.string.camera_open_fail, Toast.LENGTH_SHORT).show();
-			finish();
-		}
-
-		MaxstAR.onResume();
-
-
-		if (sceneView == null) {
-			initSceneformOverlay();
-		}
-		if (sceneView != null) {
+        if (sceneView == null) {
+            initSceneformOverlay();
+        }
+        if (sceneView != null) {
             try {
                 sceneView.resume();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
-	}
+    }
 
-	@Override
-	protected void onPause() {
-		super.onPause();
+    @Override
+    protected void onPause() {
+        super.onPause();
 
-		glSurfaceView.queueEvent(new Runnable() {
-			@Override
-			public void run() {
-				imageTargetRenderer.destroyVideoPlayer();
-			}
-		});
+        glSurfaceView.queueEvent(new Runnable() {
+            @Override
+            public void run() {
+                imageTargetRenderer.destroyVideoPlayer();
+            }
+        });
 
-		glSurfaceView.onPause();
+        glSurfaceView.onPause();
 
-		TrackerManager.getInstance().stopTracker();
-		CameraDevice.getInstance().stop();
-		MaxstAR.onPause();
-		if (sceneView != null) {
-			sceneView.pause();
-		}
-	}
+        TrackerManager.getInstance().stopTracker();
+        CameraDevice.getInstance().stop();
+        MaxstAR.onPause();
+        if (sceneView != null) {
+            sceneView.pause();
+        }
+    }
 
-	@Override
-	protected void onDestroy() {
-		super.onDestroy();
-		TrackerManager.getInstance().destroyTracker();
-		MaxstAR.deinit();
-		if (sceneView != null) {
-			sceneView.destroy();
-			sceneView = null;
-		}
-	}
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        TrackerManager.getInstance().destroyTracker();
+        MaxstAR.deinit();
+        if (sceneView != null) {
+            sceneView.destroy();
+            sceneView = null;
+        }
+    }
 
-	@Override
-	public void onClick(View view) {
-		if (view.getId() == R.id.normal_tracking) {
-			TrackerManager.getInstance().setTrackingOption(TrackerManager.TrackingOption.NORMAL_TRACKING);
-		} else if (view.getId() == R.id.extended_tracking) {
-			TrackerManager.getInstance().setTrackingOption(TrackerManager.TrackingOption.EXTENDED_TRACKING);
-		} else if (view.getId() == R.id.multi_tracking) {
-			TrackerManager.getInstance().setTrackingOption(TrackerManager.TrackingOption.MULTI_TRACKING);
-		}
-	}
+    @Override
+    public void onClick(View view) {
+        if (view.getId() == R.id.normal_tracking) {
+            TrackerManager.getInstance().setTrackingOption(TrackerManager.TrackingOption.NORMAL_TRACKING);
+        } else if (view.getId() == R.id.extended_tracking) {
+            TrackerManager.getInstance().setTrackingOption(TrackerManager.TrackingOption.EXTENDED_TRACKING);
+        } else if (view.getId() == R.id.multi_tracking) {
+            TrackerManager.getInstance().setTrackingOption(TrackerManager.TrackingOption.MULTI_TRACKING);
+        }
+    }
 
-	@Override
-	public void onConfigurationChanged(Configuration newConfig) {
-		super.onConfigurationChanged(newConfig);
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
 
-		if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-			Toast.makeText(this, "landscape", Toast.LENGTH_SHORT).show();
-		} else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-			Toast.makeText(this, "portrait", Toast.LENGTH_SHORT).show();
-		}
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            Toast.makeText(this, "landscape", Toast.LENGTH_SHORT).show();
+        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            Toast.makeText(this, "portrait", Toast.LENGTH_SHORT).show();
+        }
 
-		MaxstAR.setScreenOrientation(newConfig.orientation);
-	}
+        MaxstAR.setScreenOrientation(newConfig.orientation);
+    }
 
-	// todo working 2
+    // todo working 2
 
 //	public void updateSceneformPose(float[] poseMatrix_cameraSpace, float width, float height, float[] cameraViewMatrix) {
 //		runOnUiThread(() -> {
@@ -404,7 +389,6 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
 //	}
 
 
-
 //public void updateSceneformPose(float[] worldMatrix, float width, float height) {
 //
 //	runOnUiThread(() -> {
@@ -448,9 +432,10 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
 //		}
 //
 //		// Final position = initial pose + offset
-////		float finalX = initialX + offsetX;
-////		float finalY = initialY;
-////		float finalZ = initialZ;
+
+    /// /		float finalX = initialX + offsetX;
+    /// /		float finalY = initialY;
+    /// /		float finalZ = initialZ;
 //
 //     //   float finalX = tx + offsetX;
 //        float finalX = tx + 0.20f;
@@ -476,91 +461,88 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
 //}
 
 
-
-
     // todo
+    public void updateSceneformPose(float[] worldMatrix, float width, float height) {
 
-   public void updateSceneformPose(float[] worldMatrix, float width, float height) {
+        runOnUiThread(() -> {
+            if (modelNode == null) return;
 
-       runOnUiThread(() -> {
-           if (modelNode == null) return;
+            float tx_raw = worldMatrix[12];
+            float ty_raw = worldMatrix[13];
+            float tz_raw = worldMatrix[14];  // Maxst Z forward
 
-           float tx_raw = worldMatrix[12];
-           float ty_raw = worldMatrix[13];
-           float tz_raw = worldMatrix[14];  // Maxst Z forward
+            float tx_raw1 = worldMatrix[12];
+            float ty_raw1 = worldMatrix[13];
+            float tz_raw1 = worldMatrix[14];  // Maxst Z forward
 
-           float tx_raw1 = worldMatrix[12];
-           float ty_raw1 = worldMatrix[13];
-           float tz_raw1 = worldMatrix[14];  // Maxst Z forward
-
-           tz_raw1 = -tz_raw1;
-
-
-           Log.d("MAXST_RAW",
-                   "tx=" + tx_raw + "  ty=" + ty_raw + "  tz=" + tz_raw);
+            tz_raw1 = -tz_raw1;
 
 
-           if (!initialPoseSaved) {
-
-               initialX = tx_raw;
-               initialY = ty_raw;
-               initialZ = -tz_raw;   // convert to Sceneform Z
-
-               centerX = tx_raw;
-               centerSaved = true;
-
-               initialPoseSaved = true;
-
-               Log.d("ANCHOR_SAVED",
-                       "MODEL_ANCHOR  X=" + initialX +
-                               "  Y=" + initialY +
-                               "  Z=" + initialZ);
+            Log.d("MAXST_RAW",
+                    "tx=" + tx_raw + "  ty=" + ty_raw + "  tz=" + tz_raw);
 
 
-               sendEvent("START", tx_raw, ty_raw, tz_raw, tx_raw1, ty_raw1, tz_raw1);
-               sentStart = true;
-           }
+            if (!initialPoseSaved) {
 
-           if (centerSaved) {
+                initialX = tx_raw;
+                initialY = ty_raw;
+                initialZ = -tz_raw;   // convert to Sceneform Z
 
-               float dx = tx_raw - centerX;
+                centerX = tx_raw;
+                centerSaved = true;
+
+                initialPoseSaved = true;
+
+                Log.d("ANCHOR_SAVED",
+                        "MODEL_ANCHOR  X=" + initialX +
+                                "  Y=" + initialY +
+                                "  Z=" + initialZ);
 
 
-               if (dx > 0.02f ) {
-                   sendEvent("MOVE RIGHT", tx_raw, ty_raw, tz_raw, tx_raw1, ty_raw1, tz_raw1);
+                sendEvent("START", tx_raw, ty_raw, tz_raw, tx_raw1, ty_raw1, tz_raw1);
+                sentStart = true;
+            }
 
-                   sentRight = true;
-                   sentLeft = false;
-                   sentCenter = false;
-               }
+            if (centerSaved) {
 
-               // ---------- MOVE LEFT ----------
-               if (dx < -0.02f) {
-                   sendEvent("MOVE LEFT", tx_raw, ty_raw, tz_raw, tx_raw1, ty_raw1, tz_raw1);
+                float dx = tx_raw - centerX;
 
-                   sentLeft = true;
-                   sentRight = false;
-                   sentCenter = false;
-               }
 
-               // ---------- BACK TO CENTER ----------
-               if (Math.abs(dx) < 0.02f) {
-                   sendEvent("MOVE CENTER", tx_raw, ty_raw, tz_raw, tx_raw1, ty_raw1, tz_raw1);
+                if (dx > 0.02f) {
+                    sendEvent("MOVE RIGHT", tx_raw, ty_raw, tz_raw, tx_raw1, ty_raw1, tz_raw1);
 
-                   sentCenter = true;
-                   sentLeft = false;
-                   sentRight = false;
-               }
-           }
+                    sentRight = true;
+                    sentLeft = false;
+                    sentCenter = false;
+                }
+
+                // ---------- MOVE LEFT ----------
+                if (dx < -0.02f) {
+                    sendEvent("MOVE LEFT", tx_raw, ty_raw, tz_raw, tx_raw1, ty_raw1, tz_raw1);
+
+                    sentLeft = true;
+                    sentRight = false;
+                    sentCenter = false;
+                }
+
+                // ---------- BACK TO CENTER ----------
+                if (Math.abs(dx) < 0.02f) {
+                    sendEvent("MOVE CENTER", tx_raw, ty_raw, tz_raw, tx_raw1, ty_raw1, tz_raw1);
+
+                    sentCenter = true;
+                    sentLeft = false;
+                    sentRight = false;
+                }
+            }
 
 //           float finalX = initialX;
 //           float finalY = initialY;
 //           float finalZ = initialZ;
 
 
-           float finalX = tx_raw1;
-           float finalY = ty_raw1;
-           float finalZ = tz_raw1;
+            float finalX = tx_raw1;
+            float finalY = ty_raw1;
+            float finalZ = tz_raw1;
 
 
 //           float dx = tx_raw - initialX;
@@ -572,26 +554,26 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
 //           float finalZ = initialZ - dz; // convert Z
 
 
+            modelNode.setEnabled(true);
+            modelNode.setWorldPosition(new Vector3(finalX, finalY, finalZ));
 
-           modelNode.setEnabled(true);
-           modelNode.setWorldPosition(new Vector3(finalX, finalY, finalZ));
+            //    modelNode.setLocalPosition(new Vector3(finalX, finalY, finalZ));
 
-       //    modelNode.setLocalPosition(new Vector3(finalX, finalY, finalZ));
+            Log.d("MODEL_POSITION",
+                    "X=" + finalX + "  Y=" + finalY + "  Z=" + finalZ);
 
-           Log.d("MODEL_POSITION",
-                   "X=" + finalX + "  Y=" + finalY + "  Z=" + finalZ);
+            // ---------------- ROTATION ----------------
+            Quaternion rot = quaternionFromMatrix(worldMatrix);
+            rot = new Quaternion(-rot.x, -rot.y, rot.z, rot.w);
+            //  modelNode.setWorldRotation(rot);
 
-           // ---------------- ROTATION ----------------
-           Quaternion rot = quaternionFromMatrix(worldMatrix);
-           rot = new Quaternion(-rot.x, -rot.y, rot.z, rot.w);
-         //  modelNode.setWorldRotation(rot);
+            // ---------------- SCALE ----------------
+            float scale = width * 0.02f;
+            modelNode.setWorldScale(new Vector3(scale, scale, scale));
 
-           // ---------------- SCALE ----------------
-           float scale = width * 0.02f;
-           modelNode.setWorldScale(new Vector3(scale, scale, scale));
+        });
+    }
 
-       });
-   }
     private void sendEvent(String eventType,
                            float mx, float my, float mz,
                            float sx, float sy, float sz) {
@@ -602,281 +584,52 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
                         " | MODEL = (" + sx + ", " + sy + ", " + sz + ")");
     }
 
-	private String mat(float[] m) {
-		if (m == null || m.length < 16) return "null";
-		return String.format(
-				"\n[%.6f %.6f %.6f %.6f]\n[%.6f %.6f %.6f %.6f]\n[%.6f %.6f %.6f %.6f]\n[%.6f %.6f %.6f %.6f]",
-				m[0],m[1],m[2],m[3],
-				m[4],m[5],m[6],m[7],
-				m[8],m[9],m[10],m[11],
-				m[12],m[13],m[14],m[15]);
-	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//public void updateSceneformPose(float[] worldMatrix, float width, float height) {
-//	runOnUiThread(() -> {
-//		if (modelNode == null) return;
-//
-//		// --- 1. Extract translation from worldMatrix ---
-//		float tx = worldMatrix[12];
-//		float ty = worldMatrix[13];
-//		float tz = worldMatrix[14];
-//
-//		// --- 2. Flip Z to match Sceneform's coordinate system ---
-//		tz = -tz;
-//
-//		// --- 3. Compute camera distance to target ---
-//		float distance = (float) Math.sqrt(tx*tx + ty*ty + tz*tz);
-//
-//		// --- 4. Adjust offset automatically while camera moves away ---
-//		if (lastDistance > 0) {
-//			float diff = distance - lastDistance;
-//
-//			// Camera moved backward away from target
-//			if (diff > 0.05f) {
-//				offsetX += 0.04f;   // move model more right as camera moves away
-//			}
-//
-//			// Camera moved closer to target
-//			else if (diff < -0.05f) {
-//				offsetX -= 0.02f;   // adjust back when camera gets close
-//			}
-//		}
-//
-//		lastDistance = distance;
-//
-//		// --- 5. Apply offsets ---
-//		float finalX = tx + offsetX;
-//		float finalY = ty + offsetY;
-//		float finalZ = tz + offsetZ;
-//
-//		// --- 6. Extract rotation quaternion ---
-//		Quaternion rot = quaternionFromMatrix(worldMatrix);
-//		rot = new Quaternion(-rot.x, -rot.y, rot.z, rot.w);
-//
-//		modelNode.setEnabled(true);
-//
-//		// --- 7. Update Sceneform world transforms ---
-//		modelNode.setWorldPosition(new Vector3(finalX, finalY, finalZ));
-//		modelNode.setWorldRotation(rot);
-//
-//		float scale = width * 0.02f;
-//		modelNode.setWorldScale(new Vector3(scale, scale, scale));
-//
-//		Log.d("POSE_MODEL",
-//				"tx=" + finalX + " ty=" + finalY + " tz=" + finalZ +
-//						" | offsetX=" + offsetX);
-//	});
-//}
-
-
-
-//
-//public void updateSceneformPose(float[] worldMatrix, float width, float height) {
-//	runOnUiThread(() -> {
-//		if (modelNode == null) return;
-//
-//		// Extract translation
-//		float tx = worldMatrix[12];
-//		float ty = worldMatrix[13];
-//		float tz = worldMatrix[14];
-//
-//		tx += 0.5f;
-//
-//
-//		// Flip Z for Sceneform coordinate
-//		tz = -tz;
-//	//	tz = (float) -0.5;
-//
-//		// Extract rotation
-//		Quaternion rot = quaternionFromMatrix(worldMatrix);
-//		rot = new Quaternion(-rot.x, -rot.y, rot.z, rot.w);
-//
-//		modelNode.setEnabled(true);
-//		modelNode.setWorldPosition(new Vector3(tx, ty, tz));
-//		modelNode.setWorldRotation(rot);
-//
-//		float scale = width * 0.02f;
-//		modelNode.setWorldScale(new Vector3(scale, scale, scale));
-//
-//		Log.d("POSE_MODEL", "tx=" + tx + " ty=" + ty + " tz=" + tz);
-//	});
-//}
-
-
-
-
-
-
-
-
-
-
-
-//	public void updateSceneformPoses(float[] poseMatrix, float width, float height) {
-//
-//		runOnUiThread(() -> {
-//			if (modelNode == null) return;
-//
-//			modelNode.setEnabled(true);
-//
-//			float[] pos = { poseMatrix[12], poseMatrix[13], poseMatrix[14] };
-//
-//			// Convert to Sceneform coordinate
-//			pos[2] = -pos[2]; // reverse Z for left-handed system
-//
-//			Quaternion rot = quaternionFromMatrix(poseMatrix);
-//			rot = new Quaternion(-rot.x, -rot.y, rot.z, rot.w);
-//
-//			modelNode.setWorldPosition(new Vector3(pos[0], pos[1], pos[2]));
-//			modelNode.setWorldRotation(rot);
-//
-//			// Proper scaling
-//		//	float scale = width * 0.3f; // tweak this based on model size
-//		//	float scale = width * 0.07f;   // 50% of 0.3
-//			// todo generatror /operating_machine
-//			float scale = width * 0.37f;
-//
-//			// todo for bee
-//			modelNode.setWorldScale(new Vector3(scale, scale, scale));
-//
-//
-//			float scaleX = scale;
-//			float scaleY = scale * 0.9f; // reduce height 50%
-//			float scaleZ = scale;
-//
-//			float verySmall = scale * 0.10f;   // 90% decrease → 10% visible
-//
-//			// todo for
-//		//	modelNode.setWorldScale(new Vector3(verySmall, verySmall, verySmall));
-//
-//
-//
-//		});
-//	}
-
-
-	// --------- ADDED: Hide model when target not found ----------
-
 
 //	public void hideSceneformModel() {
 //		runOnUiThread(() -> modelNode.setEnabled(false));
 //	}
 
 
+    public void hideSceneformModel() {
+        long now = System.currentTimeMillis();
 
-public void hideSceneformModel() {
-	long now = System.currentTimeMillis();
+        if (now - lastSeenTime > LOST_TIMEOUT_MS) {
+            runOnUiThread(() -> {
+                modelNode.setEnabled(false);
+                hasStable = false;
+            });
+        }
+    }
 
-	if (now - lastSeenTime > LOST_TIMEOUT_MS) {
-		runOnUiThread(() -> {
-			modelNode.setEnabled(false);
-			hasStable = false;
-		});
-	}
-}
-
-
-//	private Quaternion quaternionFromMatrix(float[] m) {
-//
-//		float trace = m[0] + m[5] + m[10];
-//		float w, x, y, z;
-//
-//		if (trace > 0) {
-//			float s = (float) Math.sqrt(trace + 1.0f) * 2f;
-//			w = 0.25f * s;
-//			x = (m[9] - m[6]) / s;
-//			y = (m[2] - m[8]) / s;
-//			z = (m[4] - m[1]) / s;
-//
-//		} else if ((m[0] > m[5]) && (m[0] > m[10])) {
-//			float s = (float) Math.sqrt(1.0f + m[0] - m[5] - m[10]) * 2f;
-//			w = (m[9] - m[6]) / s;
-//			x = 0.25f * s;
-//			y = (m[1] + m[4]) / s;
-//			z = (m[2] + m[8]) / s;
-//
-//		} else if (m[5] > m[10]) {
-//			float s = (float) Math.sqrt(1.0f + m[5] - m[0] - m[10]) * 2f;
-//			w = (m[2] - m[8]) / s;
-//			x = (m[1] + m[4]) / s;
-//			y = 0.25f * s;
-//			z = (m[6] + m[9]) / s;
-//
-//		} else {
-//			float s = (float) Math.sqrt(1.0f + m[10] - m[0] - m[5]) * 2f;
-//			w = (m[4] - m[1]) / s;
-//			x = (m[2] + m[8]) / s;
-//			y = (m[6] + m[9]) / s;
-//			z = 0.25f * s;
-//		}
-//
-//		return new Quaternion(x, y, z, w);
-//	}
-
-
-
-
-	private Quaternion quaternionFromMatrix(float[] m) {
-		float trace = m[0] + m[5] + m[10];
-		float w, x, y, z;
-		if (trace > 0) {
-			float s = (float)Math.sqrt(trace + 1.0f) * 2f;
-			w = 0.25f * s;
-			x = (m[9] - m[6]) / s;
-			y = (m[2] - m[8]) / s;
-			z = (m[4] - m[1]) / s;
-		} else if ((m[0] > m[5]) && (m[0] > m[10])) {
-			float s = (float)Math.sqrt(1.0f + m[0] - m[5] - m[10]) * 2f;
-			w = (m[9] - m[6]) / s;
-			x = 0.25f * s;
-			y = (m[1] + m[4]) / s;
-			z = (m[2] + m[8]) / s;
-		} else if (m[5] > m[10]) {
-			float s = (float)Math.sqrt(1.0f + m[5] - m[0] - m[10]) * 2f;
-			w = (m[2] - m[8]) / s;
-			x = (m[1] + m[4]) / s;
-			y = 0.25f * s;
-			z = (m[6] + m[9]) / s;
-		} else {
-			float s = (float)Math.sqrt(1.0f + m[10] - m[0] - m[5]) * 2f;
-			w = (m[4] - m[1]) / s;
-			x = (m[2] + m[8]) / s;
-			y = (m[6] + m[9]) / s;
-			z = 0.25f * s;
-		}
-		return new Quaternion(x, y, z, w);
-	}
-
-
-
-
-	// todo old working
-
-//	private Quaternion quaternionFromMatrix(float[] m) {
-//		float w = (float)Math.sqrt(1.0f + m[0] + m[5] + m[10]) / 2f;
-//		float w4 = 4f * w;
-//
-//		float x = (m[9] - m[6]) / w4;
-//		float y = (m[2] - m[8]) / w4;
-//		float z = (m[4] - m[1]) / w4;
-//
-//		return new Quaternion(x, y, z, w);
-//	}
-
+    private Quaternion quaternionFromMatrix(float[] m) {
+        float trace = m[0] + m[5] + m[10];
+        float w, x, y, z;
+        if (trace > 0) {
+            float s = (float) Math.sqrt(trace + 1.0f) * 2f;
+            w = 0.25f * s;
+            x = (m[9] - m[6]) / s;
+            y = (m[2] - m[8]) / s;
+            z = (m[4] - m[1]) / s;
+        } else if ((m[0] > m[5]) && (m[0] > m[10])) {
+            float s = (float) Math.sqrt(1.0f + m[0] - m[5] - m[10]) * 2f;
+            w = (m[9] - m[6]) / s;
+            x = 0.25f * s;
+            y = (m[1] + m[4]) / s;
+            z = (m[2] + m[8]) / s;
+        } else if (m[5] > m[10]) {
+            float s = (float) Math.sqrt(1.0f + m[5] - m[0] - m[10]) * 2f;
+            w = (m[2] - m[8]) / s;
+            x = (m[1] + m[4]) / s;
+            y = 0.25f * s;
+            z = (m[6] + m[9]) / s;
+        } else {
+            float s = (float) Math.sqrt(1.0f + m[10] - m[0] - m[5]) * 2f;
+            w = (m[4] - m[1]) / s;
+            x = (m[2] + m[8]) / s;
+            y = (m[6] + m[9]) / s;
+            z = 0.25f * s;
+        }
+        return new Quaternion(x, y, z, w);
+    }
 
 }
