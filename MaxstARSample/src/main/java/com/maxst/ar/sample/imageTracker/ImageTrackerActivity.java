@@ -461,7 +461,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
 //}
 
 
-    // todo
+  /*  // todo
     public void updateSceneformPose(float[] worldMatrix, float width, float height) {
 
         runOnUiThread(() -> {
@@ -569,6 +569,63 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
 
             // ---------------- SCALE ----------------
             float scale = width * 0.02f;
+            modelNode.setWorldScale(new Vector3(scale, scale, scale));
+
+        });
+    }*/
+
+    // New Function
+    public void updateSceneformPose(float[] m, float w, float h) {
+
+        final float[] RH_TO_LH = {
+                1, 0,  0, 0,
+                0, 1,  0, 0,
+                0, 0, -1, 0,   // flip Z axis
+                0, 0,  0, 1
+        };
+
+        // Rotate +90 degrees around X to match Sceneform camera orientation
+        final float[] ROT_X_90 = {
+                1, 0, 0, 0,
+                0, 0,-1, 0,
+                0, 1, 0, 0,
+                0, 0, 0, 1
+        };
+        runOnUiThread(() -> {
+            if (modelNode == null) return;
+
+            // ---- 1) Copy & convert Maxst → Sceneform ----
+            float[] corrected = m.clone();
+
+            // Flip Z (RH → LH)
+            corrected[ 2] *= -1;
+            corrected[ 6] *= -1;
+            corrected[10] *= -1;
+            corrected[14] *= -1;
+
+            // ---- 2) Translation scaling ----
+            float X_MULT = 2.5f;
+            float Y_MULT = -2.5f;
+            float Z_MULT = 1.0f;
+
+            Vector3 pos = new Vector3(
+                    corrected[12] * X_MULT,
+                    corrected[13] * Y_MULT,
+                    corrected[14] * Z_MULT
+            );
+
+            Log.e("POSE_Y", "Y raw = " + corrected[13]);
+
+            // ---- 3) Rotation ----
+            Quaternion rot = quaternionFromMatrix(corrected);
+
+            // ---- 4) Scale ----
+            float scale = w * 0.02f;
+
+            // ---- 5) Apply to Scene ----
+            modelNode.setEnabled(true);
+            modelNode.setWorldPosition(pos);
+            modelNode.setWorldRotation(rot);
             modelNode.setWorldScale(new Vector3(scale, scale, scale));
 
         });

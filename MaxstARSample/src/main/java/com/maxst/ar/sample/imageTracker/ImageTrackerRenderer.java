@@ -348,16 +348,11 @@ class ImageTrackerRenderer implements Renderer {
 					chromaKeyVideoRenderer.setScale(glacierWidth, glacierHeight, 1.0f);
 					chromaKeyVideoRenderer.draw();
 
-					glacierDetected = true;
 
 					// Keep the pose stable when detecting
 					System.arraycopy(trackable.getPoseMatrix(), 0, stablePose, 0, 16);
 					hasStablePose = true;
 					lastStableTime = System.nanoTime();
-
-					glacierWidth = trackable.getWidth();
-					glacierHeight = trackable.getHeight();
-
 					float[] poseCameraSpace = glacierPose;
 
 				 cameraWorld = new float[16];
