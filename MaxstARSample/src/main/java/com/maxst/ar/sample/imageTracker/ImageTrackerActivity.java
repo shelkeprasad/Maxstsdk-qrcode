@@ -12,13 +12,16 @@ import android.graphics.PixelFormat;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.util.Log;
+import android.view.Surface;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.Toast;
 
@@ -147,6 +150,10 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         MaxstAR.init(this.getApplicationContext(), getResources().getString(R.string.app_key));
 
         MaxstAR.setScreenOrientation(getResources().getConfiguration().orientation);
+        if (Build.MANUFACTURER.equals("vuzix")){
+            CameraDevice.getInstance().flipVideo(CameraDevice.FlipDirection.HORIZONTAL, true);
+            CameraDevice.getInstance().flipVideo(CameraDevice.FlipDirection.VERTICAL, true);
+        }
 
         TrackerManager.getInstance().startTracker(TrackerManager.TRACKER_TYPE_IMAGE);
         TrackerManager.getInstance().addTrackerData("ImageTarget/Glacier.2dmap", true);
@@ -329,6 +336,10 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         }
 
         MaxstAR.setScreenOrientation(newConfig.orientation);
+        if (Build.MANUFACTURER.equals("vuzix")){
+            CameraDevice.getInstance().flipVideo(CameraDevice.FlipDirection.HORIZONTAL, true);
+            CameraDevice.getInstance().flipVideo(CameraDevice.FlipDirection.VERTICAL, true);
+        }
     }
 
     // todo working 2
@@ -577,20 +588,6 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
     // New Function
     public void updateSceneformPose(float[] m, float w, float h) {
 
-        final float[] RH_TO_LH = {
-                1, 0,  0, 0,
-                0, 1,  0, 0,
-                0, 0, -1, 0,   // flip Z axis
-                0, 0,  0, 1
-        };
-
-        // Rotate +90 degrees around X to match Sceneform camera orientation
-        final float[] ROT_X_90 = {
-                1, 0, 0, 0,
-                0, 0,-1, 0,
-                0, 1, 0, 0,
-                0, 0, 0, 1
-        };
         runOnUiThread(() -> {
             if (modelNode == null) return;
 
@@ -603,21 +600,76 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
             corrected[10] *= -1;
             corrected[14] *= -1;
 
-            // ---- 2) Translation scaling ----
+            // Extract components for convenience
+            float tx = corrected[12];
+            float ty = corrected[13];
+            float tz = corrected[14];
+
+            // 2) DEVICE ORIENTATION FIX
+            int rotation = ((WindowManager) getSystemService(WINDOW_SERVICE))
+                    .getDefaultDisplay()
+                    .getRotation();
+
+            float xFix, yFix;
+
+            switch (rotation) {
+
+                case Surface.ROTATION_0:     // Portrait → +90° rotation
+                    xFix = -ty;
+                    yFix =  tx;
+                    break;
+
+                case Surface.ROTATION_90:    // Landscape-right (your original working orientation)
+                    xFix =  tx;
+                    yFix =  ty;
+                    break;
+
+                case Surface.ROTATION_180:   // Reverse portrait → 180° rotation
+//                    xFix = -tx;
+//                    yFix = -ty;
+                    xFix = ty;
+                    yFix = -tx;
+                    break;
+
+                case Surface.ROTATION_270:   // Landscape-left → -90° rotation
+                default:
+                    xFix =  -tx;
+                    yFix =  -ty;
+//                    xFix =  ty;
+//                    yFix = -tx;
+                    break;
+            }
+
+            // Apply your scaling
             float X_MULT = 2.5f;
             float Y_MULT = -2.5f;
             float Z_MULT = 1.0f;
 
             Vector3 pos = new Vector3(
-                    corrected[12] * X_MULT,
-                    corrected[13] * Y_MULT,
-                    corrected[14] * Z_MULT
+                    xFix * X_MULT,
+                    yFix * Y_MULT,
+                    tz   * Z_MULT
             );
 
-            Log.e("POSE_Y", "Y raw = " + corrected[13]);
-
             // ---- 3) Rotation ----
-            Quaternion rot = quaternionFromMatrix(corrected);
+            Quaternion baseRot = quaternionFromMatrix(corrected);
+            Quaternion rotFix;
+            switch (rotation) {
+                case Surface.ROTATION_0:     // Portrait → +90° about Z
+                    rotFix = Quaternion.axisAngle(new Vector3(0,0,1), 90);
+                    break;
+                case Surface.ROTATION_90:    // Landscape-right → no rotation
+                    rotFix = Quaternion.identity();
+                    break;
+                case Surface.ROTATION_180:   // Reverse portrait → 180° about Z
+                    rotFix = Quaternion.axisAngle(new Vector3(0,0,1), 180);
+                    break;
+                case Surface.ROTATION_270:   // Landscape-left → -90° about Z
+                default:
+                    rotFix = Quaternion.axisAngle(new Vector3(0,0,1), -90);
+                    break;
+            }
+            Quaternion finalRot = Quaternion.multiply(baseRot, rotFix);
 
             // ---- 4) Scale ----
             float scale = w * 0.02f;
@@ -625,7 +677,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
             // ---- 5) Apply to Scene ----
             modelNode.setEnabled(true);
             modelNode.setWorldPosition(pos);
-            modelNode.setWorldRotation(rot);
+            modelNode.setWorldRotation(finalRot);
             modelNode.setWorldScale(new Vector3(scale, scale, scale));
 
         });

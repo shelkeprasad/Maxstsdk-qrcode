@@ -7,6 +7,7 @@ import android.app.Activity;
 import android.graphics.Bitmap;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView.Renderer;
+import android.os.Build;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -266,7 +267,11 @@ class ImageTrackerRenderer implements Renderer {
 		float[] projectionMatrix = CameraDevice.getInstance().getProjectionMatrix();
 		float[] backgroundPlaneInfo = CameraDevice.getInstance().getBackgroundPlaneInfo();
 
-		backgroundRenderHelper.drawBackground(image, projectionMatrix, backgroundPlaneInfo);
+		if (Build.MANUFACTURER.equals("vuzix")) {
+			backgroundRenderHelper.drawBackground(image, projectionMatrix, backgroundPlaneInfo, true, true);
+		} else {
+			backgroundRenderHelper.drawBackground(image, projectionMatrix, backgroundPlaneInfo);
+		}
 
 		GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
