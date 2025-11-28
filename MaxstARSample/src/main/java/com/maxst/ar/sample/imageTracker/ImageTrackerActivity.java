@@ -11,7 +11,6 @@ import android.content.res.Configuration;
 import android.graphics.PixelFormat;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
-import android.opengl.Matrix;
 import android.os.Build;
 import android.os.Bundle;
 
@@ -19,25 +18,17 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.util.Log;
 import android.view.Surface;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.FrameLayout;
 import android.widget.Toast;
 
-
-//
-import com.google.ar.sceneform.Camera;
 import com.google.ar.sceneform.Node;
 import com.google.ar.sceneform.Scene;
 import com.google.ar.sceneform.SceneView;
-import com.google.ar.sceneform.Sceneform;
 import com.google.ar.sceneform.animation.ModelAnimator;
 import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.ModelRenderable;
-
-import com.bumptech.glide.load.model.Model;
 import com.google.ar.sceneform.rendering.RenderableInstance;
 import com.maxst.ar.CameraDevice;
 import com.maxst.ar.MaxstAR;
@@ -46,7 +37,6 @@ import com.maxst.ar.TrackerManager;
 import com.maxst.ar.sample.R;
 import com.maxst.ar.sample.util.SampleUtil;
 
-import java.util.Arrays;
 import java.util.List;
 
 public class ImageTrackerActivity extends AppCompatActivity implements View.OnClickListener {
@@ -54,95 +44,24 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
     private ImageTrackerRenderer imageTargetRenderer;
     private GLSurfaceView glSurfaceView;
     private int preferCameraResolution = 0;
-    private Sceneform sceneformView;
-    private SurfaceView sceneformSurfaceView;
     private SceneView sceneView;
     private Scene scene;
-    private Node modelNode;
-
-    private ModelRenderable modelRenderable;
-    private ModelAnimator modelAnimator;
-
-    private volatile long lastSeenNs = 0L;
-    private static final long HIDE_DELAY_NS = 200L * 1000000L; // 200 ms
-
-    private static final float SCALE_FACTOR = 1.0f;
-
-    private float[] lastWorldMatrix = new float[16];
-
-
-    //
-    // last seen timestamp to quickly hide when lost
-    private volatile long lastSeenMs = 0L;
-
-    // stored last transform for smoothing & preventing jumps when lost (keeps last stable pose)
-    private boolean hasLastWorld = false;
-
-    private static final long HIDE_DELAY_MS = 200;        // CHANGED: hide delay after target lost (ms)
-    private static final float SMOOTHING = 0.35f;
-
-    private float[] lastStableWorld = new float[16];   // last stable pose
-    private boolean hasStable = false;
-
-    private long lastSeenTime = 0;     // Timestamp of last valid detection
-    private static final long LOST_TIMEOUT_MS = 150;   // hide after 150ms
-
-
-    private float[] stablePose = new float[16];
-    private boolean hasStablePose = false;
-    private long lastStableTime = 0L;
-    private static final long STABLE_TIMEOUT_NS = 150_000_000; // 150ms
-
-
-    private Vector3 lastPos = null;
-    private Quaternion lastRot = null;
-
-    private final float SMOOTH_POS = 0.15f;
-    private final float SMOOTH_ROT = 0.15f;
-
-
-    private float offsetX = 0f;
-    private float offsetY = 0f;
-    private float offsetZ = 0f;
-
-
-    private static final float DISTANCE_MOVE_THRESHOLD = 0.03f;
-    private static final float OFFSET_STEP_FORWARD = 0.02f;
-    private static final float OFFSET_STEP_BACK = 0.01f;
-    private static final float OFFSET_MAX = 0.8f;
-
-
-    private boolean cameraMovingAway = false;
-
-
-    private float initialX = 0;
-    private float initialY = 0;
-    private float initialZ = 0;
-    private boolean initialPoseSaved = false;
-
-    private float lastDistance = 0;
-
-
-    float centerX = 0;
-    boolean centerSaved = false;
-
-    boolean sentStart = false;
-    boolean sentLeft = false;
-    boolean sentRight = false;
-    boolean sentCenter = false;
-
+    private Node glacierNode;
+    private Node legoNode;
+    private Node blocksNode;
+    public int surfaceWidth = 0;
+    public int surfaceHeight = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_image_tracker);
-
         findViewById(R.id.normal_tracking).setOnClickListener(this);
         findViewById(R.id.extended_tracking).setOnClickListener(this);
         findViewById(R.id.multi_tracking).setOnClickListener(this);
 
-        imageTargetRenderer = new ImageTrackerRenderer(this);
+        imageTargetRenderer = new ImageTrackerRenderer(this, this);
         glSurfaceView = (GLSurfaceView) findViewById(R.id.gl_surface_view);
         glSurfaceView.setEGLContextClientVersion(2);
         glSurfaceView.setRenderer(imageTargetRenderer);
@@ -150,7 +69,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         MaxstAR.init(this.getApplicationContext(), getResources().getString(R.string.app_key));
 
         MaxstAR.setScreenOrientation(getResources().getConfiguration().orientation);
-        if (Build.MANUFACTURER.equals("vuzix")){
+        if (Build.MANUFACTURER.equals("vuzix")) {
             CameraDevice.getInstance().flipVideo(CameraDevice.FlipDirection.HORIZONTAL, true);
             CameraDevice.getInstance().flipVideo(CameraDevice.FlipDirection.VERTICAL, true);
         }
@@ -172,73 +91,61 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         preferCameraResolution = getSharedPreferences(SampleUtil.PREF_NAME, Activity.MODE_PRIVATE).getInt(SampleUtil.PREF_KEY_CAM_RESOLUTION, 0);
     }
 
-
     private void initSceneformOverlay() {
+
         sceneView = findViewById(R.id.sceneView);
         sceneView.setTransparent(true);
         sceneView.getHolder().setFormat(PixelFormat.TRANSLUCENT);
-        sceneView.setTransparent(true);
 
         scene = sceneView.getScene();
 
+        glacierNode = new Node();
+        legoNode = new Node();
+        blocksNode = new Node();
 
-        //
+        glacierNode.setEnabled(false);
+        legoNode.setEnabled(false);
+        blocksNode.setEnabled(false);
 
+        scene.addChild(glacierNode);
+        scene.addChild(legoNode);
+        scene.addChild(blocksNode);
 
-        modelNode = new Node();
-        scene.addChild(modelNode);
+        loadModelWithAnimation("file:///android_asset/pneumatic_engine.glb", glacierNode);
+        loadModelWithAnimation("file:///android_asset/Bee.glb", legoNode);
+        loadModelWithAnimation("file:///android_asset/Bee.glb", blocksNode);
 
+    }
 
-        // ---------- DISABLE SCENEFORM CAMERA MOTION ----------
-
-//        sceneView.getScene().addOnUpdateListener(frameTime -> {
-//            Camera cam = sceneView.getScene().getCamera();
-//
-//            // Freeze the camera so Sceneform stops moving it
-//            cam.setWorldPosition(new Vector3(0, 0, 0));
-//            cam.setWorldRotation(Quaternion.identity());
-//        });
-
+    private void loadModelWithAnimation(String path, Node node) {
 
         ModelRenderable.builder()
-                //.setSource(this, Uri.parse("file:///android_asset/Jumping.glb"))
-                //	.setSource(this, Uri.parse("file:///android_asset/Bee.glb"))
-                //	.setSource(this, Uri.parse("file:///android_asset/vending_machine.glb"))
-                //		.setSource(this, Uri.parse("file:///android_asset/generator.glb"))
-                .setSource(this, Uri.parse("file:///android_asset/pneumatic_engine.glb"))
-
-
-                //	.setSource(this, Uri.parse("file:///android_asset/platen_press.glb"))
-                //	.setSource(this, Uri.parse("file:///android_asset/operating_machine.glb"))
+                .setSource(this, Uri.parse(path))
                 .setIsFilamentGltf(true)
                 .build()
                 .thenAccept(renderable -> {
-                    modelRenderable = renderable;
-                    modelNode.setRenderable(renderable);
 
-                    RenderableInstance instance = modelNode.getRenderableInstance();
-                    modelNode.setEnabled(false);
-                    // Get the animation name from instance
-                    List<String> animNames = instance.getAnimationNames();
-                    if (animNames.isEmpty()) {
-                        Log.w("ARAnimation", "No animations found in the model");
+                    node.setRenderable(renderable);
+
+                    RenderableInstance instance = node.getRenderableInstance();
+                    List<String> anims = instance.getAnimationNames();
+
+                    if (anims.isEmpty()) {
+                        Log.w("ARAnimation", "No animations in: " + path);
                         return;
                     }
-                    String animationName = animNames.get(0); // or pick based on your glb
 
-                    // Use ObjectAnimator from maintained Sceneform
-                    ObjectAnimator animator = ModelAnimator.ofAnimation(instance, animationName);
+                    String animName = anims.get(0);
+                    ObjectAnimator animator = ModelAnimator.ofAnimation(instance, animName);
                     animator.setRepeatCount(ValueAnimator.INFINITE);
-                    //	animator.start();
+                    animator.start();
 
                 })
-                .exceptionally(throwable -> {
-                    // handle load error
-                    throwable.printStackTrace();
+                .exceptionally(t -> {
+                    t.printStackTrace();
                     return null;
                 });
     }
-
 
     @Override
     protected void onResume() {
@@ -336,267 +243,23 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         }
 
         MaxstAR.setScreenOrientation(newConfig.orientation);
-        if (Build.MANUFACTURER.equals("vuzix")){
+        if (Build.MANUFACTURER.equals("vuzix")) {
             CameraDevice.getInstance().flipVideo(CameraDevice.FlipDirection.HORIZONTAL, true);
             CameraDevice.getInstance().flipVideo(CameraDevice.FlipDirection.VERTICAL, true);
         }
     }
 
-    // todo working 2
-
-//	public void updateSceneformPose(float[] poseMatrix_cameraSpace, float width, float height, float[] cameraViewMatrix) {
-//		runOnUiThread(() -> {
-//			if (modelNode == null) return;
-//
-//
-//// Invert camera view -> camera world matrix
-//			float[] cameraWorld = new float[16];
-//			boolean ok = Matrix.invertM(cameraWorld, 0, cameraViewMatrix, 0);
-//			if (!ok) {
-//				Log.w("ImageTracker", "Failed to invert camera view matrix");
-//				return;
-//			}
-//
-//
-//// worldMatrix = cameraWorld * poseMatrix_cameraSpace
-//			float[] worldMatrix = new float[16];
-//			// todo new add ..
-//
-//			Matrix.invertM(cameraWorld, 0, cameraViewMatrix, 0);
-//			Matrix.multiplyMM(worldMatrix, 0, cameraWorld, 0, poseMatrix_cameraSpace, 0);
-//
-//
-//// Extract translation from worldMatrix
-//			float tx = worldMatrix[12];
-//			float ty = worldMatrix[13];
-//			float tz = worldMatrix[14];
-//
-//
-//// CHANGED: apply handedness flip if needed (you used this previously)
-//			tz = -tz; // flip Z to match Sceneform coordinate system
-//
-//
-//// Extract rotation quaternion
-//			Quaternion rot = quaternionFromMatrix(worldMatrix);
-//			rot = new Quaternion(-rot.x, -rot.y, rot.z, rot.w); // CHANGED: preserve your previous handedness adjustments
-//
-//
-//			modelNode.setEnabled(true);
-//			modelNode.setWorldPosition(new Vector3(tx, ty, tz)); // CHANGED: set WORLD position (prevents drift)
-//			modelNode.setWorldRotation(rot); // CHANGED: set WORLD rotation
-//
-//
-//			float scale = width * 0.02f;
-//			modelNode.setWorldScale(new Vector3(scale, scale, scale)); // CHANGED: world scale
-//
-//
-//			Log.d("POSE_MODEL",
-//					"Model Pos: tx=" + tx + " ty=" + ty + " tz=" + tz);
-//
-//			Log.d("POSE_MODEL_MATRIX",
-//					"WorldMatrix: " + mat(worldMatrix));
-//
-//		});
-//	}
-
-
-//public void updateSceneformPose(float[] worldMatrix, float width, float height) {
-//
-//	runOnUiThread(() -> {
-//		if (modelNode == null) return;
-//
-//		// Extract raw translation
-//		float tx = worldMatrix[12];
-//		float ty = worldMatrix[13];
-//		float tz = worldMatrix[14];
-//
-//		// Save INITIAL pose for anchor
-//		if (!initialPoseSaved) {
-//			initialX = tx;
-//			initialY = ty;
-//			initialZ = -tz;   // Sceneform flip
-//			initialPoseSaved = true;
-//		}
-//
-//		// Distance camera→target
-//		float dist = (float) Math.sqrt(tx*tx + ty*ty + tz*tz);
-//
-//		// Detect backward motion
-//		float diff = (lastDistance > 0 ? dist - lastDistance : 0);
-//		lastDistance = dist;
-//		cameraMovingAway = diff > 0.01f;
-//
-//		// Flip Z for Sceneform
-//		tz = -tz;
-//
-//		// Compute offset only when moving AWAY
-//		float offsetX = 0f;
-//		if (cameraMovingAway) {
-//			offsetX = dist * 0.5f;
-//
-//			// Detect left/right from raw TX
-//			boolean cameraRight = (tx > 0);
-//			boolean cameraLeft  = (tx < 0);
-//
-//			if (cameraRight) offsetX = +offsetX  ;   // move model left
-//			if (cameraLeft)  offsetX = -offsetX;   // move model right
-//		}
-//
-//		// Final position = initial pose + offset
-
-    /// /		float finalX = initialX + offsetX;
-    /// /		float finalY = initialY;
-    /// /		float finalZ = initialZ;
-//
-//     //   float finalX = tx + offsetX;
-//        float finalX = tx + 0.20f;
-//        float finalY = ty;
-//        float finalZ = tz;
-//
-//		// Apply final pose
-//		modelNode.setEnabled(true);
-//		modelNode.setWorldPosition(new Vector3(finalX, finalY, finalZ));
-//
-//		Quaternion rot = quaternionFromMatrix(worldMatrix);
-//		rot = new Quaternion(-rot.x, -rot.y, rot.z, rot.w); // Sceneform fix
-//		modelNode.setWorldRotation(rot);
-//
-//		float scale = width * 0.02f;
-//		modelNode.setWorldScale(new Vector3(scale, scale, scale));
-//
-//		Log.d("UPDATE_POSE",
-//				"tx=" + tx +
-//						" movingAway=" + cameraMovingAway +
-//						" offsetX=" + offsetX);
-//	});
-//}
-
-
-  /*  // todo
-    public void updateSceneformPose(float[] worldMatrix, float width, float height) {
+    private void applyPoseToNode(Node node, float[] m, float w, float h) {
 
         runOnUiThread(() -> {
-            if (modelNode == null) return;
-
-            float tx_raw = worldMatrix[12];
-            float ty_raw = worldMatrix[13];
-            float tz_raw = worldMatrix[14];  // Maxst Z forward
-
-            float tx_raw1 = worldMatrix[12];
-            float ty_raw1 = worldMatrix[13];
-            float tz_raw1 = worldMatrix[14];  // Maxst Z forward
-
-            tz_raw1 = -tz_raw1;
-
-
-            Log.d("MAXST_RAW",
-                    "tx=" + tx_raw + "  ty=" + ty_raw + "  tz=" + tz_raw);
-
-
-            if (!initialPoseSaved) {
-
-                initialX = tx_raw;
-                initialY = ty_raw;
-                initialZ = -tz_raw;   // convert to Sceneform Z
-
-                centerX = tx_raw;
-                centerSaved = true;
-
-                initialPoseSaved = true;
-
-                Log.d("ANCHOR_SAVED",
-                        "MODEL_ANCHOR  X=" + initialX +
-                                "  Y=" + initialY +
-                                "  Z=" + initialZ);
-
-
-                sendEvent("START", tx_raw, ty_raw, tz_raw, tx_raw1, ty_raw1, tz_raw1);
-                sentStart = true;
-            }
-
-            if (centerSaved) {
-
-                float dx = tx_raw - centerX;
-
-
-                if (dx > 0.02f) {
-                    sendEvent("MOVE RIGHT", tx_raw, ty_raw, tz_raw, tx_raw1, ty_raw1, tz_raw1);
-
-                    sentRight = true;
-                    sentLeft = false;
-                    sentCenter = false;
-                }
-
-                // ---------- MOVE LEFT ----------
-                if (dx < -0.02f) {
-                    sendEvent("MOVE LEFT", tx_raw, ty_raw, tz_raw, tx_raw1, ty_raw1, tz_raw1);
-
-                    sentLeft = true;
-                    sentRight = false;
-                    sentCenter = false;
-                }
-
-                // ---------- BACK TO CENTER ----------
-                if (Math.abs(dx) < 0.02f) {
-                    sendEvent("MOVE CENTER", tx_raw, ty_raw, tz_raw, tx_raw1, ty_raw1, tz_raw1);
-
-                    sentCenter = true;
-                    sentLeft = false;
-                    sentRight = false;
-                }
-            }
-
-//           float finalX = initialX;
-//           float finalY = initialY;
-//           float finalZ = initialZ;
-
-
-            float finalX = tx_raw1;
-            float finalY = ty_raw1;
-            float finalZ = tz_raw1;
-
-
-//           float dx = tx_raw - initialX;
-//           float dy = ty_raw - initialY;
-//           float dz = tz_raw - initialZ;
-//
-//           float finalX = initialX + dx;
-//           float finalY = initialY + dy;
-//           float finalZ = initialZ - dz; // convert Z
-
-
-            modelNode.setEnabled(true);
-            modelNode.setWorldPosition(new Vector3(finalX, finalY, finalZ));
-
-            //    modelNode.setLocalPosition(new Vector3(finalX, finalY, finalZ));
-
-            Log.d("MODEL_POSITION",
-                    "X=" + finalX + "  Y=" + finalY + "  Z=" + finalZ);
-
-            // ---------------- ROTATION ----------------
-            Quaternion rot = quaternionFromMatrix(worldMatrix);
-            rot = new Quaternion(-rot.x, -rot.y, rot.z, rot.w);
-            //  modelNode.setWorldRotation(rot);
-
-            // ---------------- SCALE ----------------
-            float scale = width * 0.02f;
-            modelNode.setWorldScale(new Vector3(scale, scale, scale));
-
-        });
-    }*/
-
-    // New Function
-    public void updateSceneformPose(float[] m, float w, float h) {
-
-        runOnUiThread(() -> {
-            if (modelNode == null) return;
+            if (node == null) return;
 
             // ---- 1) Copy & convert Maxst → Sceneform ----
             float[] corrected = m.clone();
 
             // Flip Z (RH → LH)
-            corrected[ 2] *= -1;
-            corrected[ 6] *= -1;
+            corrected[2] *= -1;
+            corrected[6] *= -1;
             corrected[10] *= -1;
             corrected[14] *= -1;
 
@@ -616,12 +279,12 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
 
                 case Surface.ROTATION_0:     // Portrait → +90° rotation
                     xFix = -ty;
-                    yFix =  tx;
+                    yFix = tx;
                     break;
 
                 case Surface.ROTATION_90:    // Landscape-right (your original working orientation)
-                    xFix =  tx;
-                    yFix =  ty;
+                    xFix = tx;
+                    yFix = ty;
                     break;
 
                 case Surface.ROTATION_180:   // Reverse portrait → 180° rotation
@@ -633,8 +296,8 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
 
                 case Surface.ROTATION_270:   // Landscape-left → -90° rotation
                 default:
-                    xFix =  -tx;
-                    yFix =  -ty;
+                    xFix = -tx;
+                    yFix = -ty;
 //                    xFix =  ty;
 //                    yFix = -tx;
                     break;
@@ -648,7 +311,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
             Vector3 pos = new Vector3(
                     xFix * X_MULT,
                     yFix * Y_MULT,
-                    tz   * Z_MULT
+                    tz * Z_MULT
             );
 
             // ---- 3) Rotation ----
@@ -656,17 +319,17 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
             Quaternion rotFix;
             switch (rotation) {
                 case Surface.ROTATION_0:     // Portrait → +90° about Z
-                    rotFix = Quaternion.axisAngle(new Vector3(0,0,1), 90);
+                    rotFix = Quaternion.axisAngle(new Vector3(0, 0, 1), 90);
                     break;
                 case Surface.ROTATION_90:    // Landscape-right → no rotation
                     rotFix = Quaternion.identity();
                     break;
                 case Surface.ROTATION_180:   // Reverse portrait → 180° about Z
-                    rotFix = Quaternion.axisAngle(new Vector3(0,0,1), 180);
+                    rotFix = Quaternion.axisAngle(new Vector3(0, 0, 1), 180);
                     break;
                 case Surface.ROTATION_270:   // Landscape-left → -90° about Z
                 default:
-                    rotFix = Quaternion.axisAngle(new Vector3(0,0,1), -90);
+                    rotFix = Quaternion.axisAngle(new Vector3(0, 0, 1), -90);
                     break;
             }
             Quaternion finalRot = Quaternion.multiply(baseRot, rotFix);
@@ -674,40 +337,42 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
             // ---- 4) Scale ----
             float scale = w * 0.02f;
 
+            if (node == blocksNode) {
+                scale *= 3.0f;
+            }
+
             // ---- 5) Apply to Scene ----
-            modelNode.setEnabled(true);
-            modelNode.setWorldPosition(pos);
-            modelNode.setWorldRotation(finalRot);
-            modelNode.setWorldScale(new Vector3(scale, scale, scale));
+            node.setEnabled(true);
+            node.setWorldPosition(pos);
+            node.setWorldRotation(finalRot);
+            node.setWorldScale(new Vector3(scale, scale, scale));
 
         });
     }
 
-    private void sendEvent(String eventType,
-                           float mx, float my, float mz,
-                           float sx, float sy, float sz) {
+    public void updateGlacierPose(float[] m, float w, float h) {
+        applyPoseToNode(glacierNode, m, w, h);
+    }
 
-        Log.e("EVENT_TRIGGERED",
-                eventType +
-                        " | MAXST = (" + mx + ", " + my + ", " + mz + ")" +
-                        " | MODEL = (" + sx + ", " + sy + ", " + sz + ")");
+    public void updateLegoPose(float[] m, float w, float h) {
+        applyPoseToNode(legoNode, m, w, h);
+    }
+
+    public void updateBlocksPose(float[] m, float w, float h) {
+        applyPoseToNode(blocksNode, m, w, h);
     }
 
 
-//	public void hideSceneformModel() {
-//		runOnUiThread(() -> modelNode.setEnabled(false));
-//	}
+    public void hideGlacier() {
+        runOnUiThread(() -> glacierNode.setEnabled(false));
+    }
 
+    public void hideLego() {
+        runOnUiThread(() -> legoNode.setEnabled(false));
+    }
 
-    public void hideSceneformModel() {
-        long now = System.currentTimeMillis();
-
-        if (now - lastSeenTime > LOST_TIMEOUT_MS) {
-            runOnUiThread(() -> {
-                modelNode.setEnabled(false);
-                hasStable = false;
-            });
-        }
+    public void hideBlocks() {
+        runOnUiThread(() -> blocksNode.setEnabled(false));
     }
 
     private Quaternion quaternionFromMatrix(float[] m) {
