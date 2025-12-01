@@ -8,7 +8,10 @@ import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.res.Configuration;
+import android.graphics.Color;
 import android.graphics.PixelFormat;
+import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
@@ -17,9 +20,14 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.util.Log;
+import android.view.Gravity;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.ar.sceneform.Node;
@@ -31,13 +39,17 @@ import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.ModelRenderable;
 import com.google.ar.sceneform.rendering.RenderableInstance;
 import com.maxst.ar.CameraDevice;
+import com.maxst.ar.Matrix;
 import com.maxst.ar.MaxstAR;
 import com.maxst.ar.ResultCode;
 import com.maxst.ar.TrackerManager;
 import com.maxst.ar.sample.R;
 import com.maxst.ar.sample.util.SampleUtil;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 
 public class ImageTrackerActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -49,14 +61,25 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
     private Node glacierNode;
     private Node legoNode;
     private Node blocksNode;
+
     public int surfaceWidth = 0;
     public int surfaceHeight = 0;
+
+    private FrameLayout labelContainer;
+    private final Map<String, TextView> labelViews = new HashMap<>();
+
+    private final float[] projectionMatrix = new float[16];
+    public String activeLabel = null;
+    public float[] smoothedGlacierPose = null;
+    private float SMOOTH_FACTOR = 0.2f;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_image_tracker);
+        labelContainer = findViewById(R.id.container);
         findViewById(R.id.normal_tracking).setOnClickListener(this);
         findViewById(R.id.extended_tracking).setOnClickListener(this);
         findViewById(R.id.multi_tracking).setOnClickListener(this);
@@ -208,6 +231,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         if (sceneView != null) {
             sceneView.pause();
         }
+        imageTargetRenderer.stopAllVideos();
     }
 
     @Override
@@ -249,7 +273,8 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         }
     }
 
-    private void applyPoseToNode(Node node, float[] m, float w, float h) {
+
+    public void updateSceneformPose(Node node, float[] m, float w, float h, boolean isModelVisible) {
 
         runOnUiThread(() -> {
             if (node == null) return;
@@ -337,43 +362,26 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
             // ---- 4) Scale ----
             float scale = w * 0.02f;
 
-            if (node == blocksNode) {
-                scale *= 3.0f;
+            if (node != null) {
+                node.setWorldPosition(pos);
+                node.setWorldRotation(finalRot);
+                node.setWorldScale(new Vector3(scale, scale, scale));
+
             }
-
-            // ---- 5) Apply to Scene ----
-            node.setEnabled(true);
-            node.setWorldPosition(pos);
-            node.setWorldRotation(finalRot);
-            node.setWorldScale(new Vector3(scale, scale, scale));
-
+            if (isModelVisible) {
+                node.setEnabled(true);
+            }
         });
     }
 
-    public void updateGlacierPose(float[] m, float w, float h) {
-        applyPoseToNode(glacierNode, m, w, h);
+    public void updateGlacierPose(float[] m, float w, float h, boolean ismodel) {
+        updateSceneformPose(glacierNode, m, w, h, ismodel);
     }
-
-    public void updateLegoPose(float[] m, float w, float h) {
-        applyPoseToNode(legoNode, m, w, h);
-    }
-
-    public void updateBlocksPose(float[] m, float w, float h) {
-        applyPoseToNode(blocksNode, m, w, h);
-    }
-
 
     public void hideGlacier() {
         runOnUiThread(() -> glacierNode.setEnabled(false));
     }
 
-    public void hideLego() {
-        runOnUiThread(() -> legoNode.setEnabled(false));
-    }
-
-    public void hideBlocks() {
-        runOnUiThread(() -> blocksNode.setEnabled(false));
-    }
 
     private Quaternion quaternionFromMatrix(float[] m) {
         float trace = m[0] + m[5] + m[10];
@@ -404,6 +412,213 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
             z = 0.25f * s;
         }
         return new Quaternion(x, y, z, w);
+    }
+
+    public void updateLabelAtModelPoint(String name,
+                                        float[] poseMatrix, float w, float h,
+                                        float modelX, float modelY, float modelZ,
+                                        float offsetX, float offsetY) {
+        final float[] poseSnapshot = (poseMatrix == null) ? null : poseMatrix.clone();
+
+        runOnUiThread(() -> {
+            if (labelContainer == null) return;
+
+            TextView tv = labelViews.get(name);
+
+            if (tv == null) {
+                tv = new TextView(this);
+                tv.setText(name);
+                tv.setTextColor(Color.WHITE);
+                tv.setGravity(Gravity.CENTER);
+                tv.setTypeface(Typeface.DEFAULT_BOLD);
+                tv.setPadding(16, 16, 16, 16);
+                tv.setBackgroundResource(R.drawable.label_bg_rounded);
+                tv.setOnClickListener(v -> {
+                    Toast.makeText(this, "Clicked: " + name, Toast.LENGTH_SHORT).show();
+                    activeLabel = name;
+                });
+                applyLabelStyle(name, tv);
+                labelContainer.addView(tv);
+                labelViews.put(name, tv);
+            }
+
+
+            if (poseSnapshot == null) {
+                tv.setVisibility(View.GONE);
+                return;
+            }
+
+            float[] screen = projectModelPointToScreen(poseSnapshot, modelX, modelY, modelZ);
+            if (screen == null) {
+                tv.setVisibility(View.GONE);
+                return;
+            }
+
+            float finalX = screen[0] - tv.getWidth() / 2f + offsetX;
+            float finalY = screen[1] - tv.getHeight() / 2f + offsetY;
+
+            tv.setX(finalX);
+            tv.setY(finalY);
+            tv.setVisibility(View.VISIBLE);
+        });
+    }
+
+    private void applyLabelStyle(String name, TextView tv) {
+
+        switch (name) {
+
+            case "Machine Model":
+                tv.setTextSize(12f);
+                setDrawableSize(tv, R.drawable.cancel, 90, 90);  // custom icon size
+                setTextViewSize(tv, 300, 150); // width, height
+                break;
+
+            case "Label1":
+                tv.setTextSize(12f);
+                setDrawableSize(tv, R.drawable.search, 80, 80);
+                setTextViewSize(tv, 250, 140);
+                break;
+
+            case "Label2":
+                tv.setTextSize(12f);
+                setDrawableSize(tv, R.drawable.backarrow, 70, 70);
+                setTextViewSize(tv, 270, 130);
+                break;
+
+            case "Label3":
+                tv.setTextSize(10f);
+                setDrawableSize(tv, R.drawable.backarrow, 70, 70);
+                setTextViewSize(tv, 350, 135);
+                break;
+
+            case "Label4":
+                tv.setTextSize(10f);
+                setTextViewSize(tv, 240, 120);
+                setDrawableSize(tv, R.drawable.backarrow, 70, 70);
+                break;
+
+            default:
+                tv.setTextSize(10f);
+                setTextViewSize(tv, 120, 130);
+        }
+    }
+
+    private void setTextViewSize(TextView tv, int width, int height) {
+        LinearLayout.LayoutParams params =
+                new LinearLayout.LayoutParams(width, height);
+        tv.setLayoutParams(params);
+    }
+
+
+    private void setDrawableSize(TextView tv, int resId, int width, int height) {
+        Drawable d = getResources().getDrawable(resId);
+        d.setBounds(0, 0, width, height);
+        d.setTint(Color.WHITE);
+        tv.setCompoundDrawables(d, null, null, null);
+    }
+
+
+    private float[] projectModelPointToScreen(float[] poseMatrix, float modelX, float modelY, float modelZ) {
+        if (projectionMatrix == null) return null;
+        if (surfaceWidth == 0 || surfaceHeight == 0) return null;
+
+        // model point in homogeneous coords
+        float[] pt = {modelX, modelY, modelZ, 1f};
+
+        // P * M
+        float[] pm = new float[16];
+        Matrix.multiplyMM(pm, 0, projectionMatrix, 0, poseMatrix, 0);
+        //    Matrix.multiplyMM(pm, 0, projectionMatrix, 0, sceneformPose, 0);
+
+
+        float[] clip = new float[4];
+        Matrix.multiplyMV(clip, 0, pm, 0, pt, 0);
+
+        if (clip[3] == 0f) return null;
+
+        float nx = clip[0] / clip[3];
+        float ny = clip[1] / clip[3];
+
+        float sx = (nx * 0.5f + 0.5f) * surfaceWidth;
+        float sy = (1f - (ny * 0.5f + 0.5f)) * surfaceHeight;
+
+        return new float[]{sx, sy};
+    }
+
+    private void quaternionToMatrix(float[] q, float[] out) {
+        float x = q[0], y = q[1], z = q[2], w = q[3];
+
+        out[0] = 1 - 2 * y * y - 2 * z * z;
+        out[1] = 2 * x * y - 2 * z * w;
+        out[2] = 2 * x * z + 2 * y * w;
+        out[3] = 0;
+
+        out[4] = 2 * x * y + 2 * z * w;
+        out[5] = 1 - 2 * x * x - 2 * z * z;
+        out[6] = 2 * y * z - 2 * x * w;
+        out[7] = 0;
+
+        out[8] = 2 * x * z - 2 * y * w;
+        out[9] = 2 * y * z + 2 * x * w;
+        out[10] = 1 - 2 * x * x - 2 * y * y;
+        out[11] = 0;
+
+        out[12] = 0;
+        out[13] = 0;
+        out[14] = 0;
+        out[15] = 1;
+    }
+
+    public float[] smoothPose(float[] oldPose, float[] newPose) {
+        if (oldPose == null) return newPose.clone();
+
+        float[] out = new float[16];
+        for (int i = 0; i < 16; i++) {
+            out[i] = oldPose[i] * (1f - SMOOTH_FACTOR) + newPose[i] * SMOOTH_FACTOR;
+        }
+        return out;
+    }
+
+    private float[] convertMaxstPoseToScreen(float[] poseMatrix, float w, float h) {
+
+        if (projectionMatrix == null) return null;
+        if (surfaceWidth == 0 || surfaceHeight == 0) return null;
+
+        float[] center = {0, 0, 0, 1};
+
+        float[] poseCopy = poseMatrix.clone();
+
+        float[] pm = new float[16];
+        Matrix.multiplyMM(pm, 0, projectionMatrix, 0, poseCopy, 0);   // <-- MUST USE poseCopy
+
+        float[] clip = new float[4];
+        Matrix.multiplyMV(clip, 0, pm, 0, center, 0);
+
+        if (clip[3] == 0f) return null;
+
+        float nx = clip[0] / clip[3];
+        float ny = clip[1] / clip[3];
+
+        float sx = (nx * 0.5f + 0.5f) * surfaceWidth;
+        float sy = (1f - (ny * 0.5f + 0.5f)) * surfaceHeight;
+
+        return new float[]{sx, sy};
+    }
+
+    public void hideLabel(String name) {
+        runOnUiThread(() -> {
+            TextView tv = labelViews.get(name);
+            if (tv != null) tv.setVisibility(View.GONE);
+        });
+    }
+
+    public void updateProjection(float[] p) {
+        System.arraycopy(p, 0, projectionMatrix, 0, 16);
+    }
+
+    public void updateSurfaceSize(int w, int h) {
+        surfaceWidth = w;
+        surfaceHeight = h;
     }
 
 }

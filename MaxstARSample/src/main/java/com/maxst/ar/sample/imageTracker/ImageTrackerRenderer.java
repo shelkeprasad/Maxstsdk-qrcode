@@ -42,6 +42,12 @@ class ImageTrackerRenderer implements Renderer {
     private final Activity activity;
     private ImageTrackerActivity imageTrackerActivity;
 
+    private ChromaKeyVideoRenderer videoGlacier;
+    private ChromaKeyVideoRenderer videoLabel2;
+    private ChromaKeyVideoRenderer videoLabel3;
+    private ChromaKeyVideoRenderer videoLabel4;
+    private ChromaKeyVideoRenderer videoMachine;
+
     ImageTrackerRenderer(Activity activity, ImageTrackerActivity imageTrackerActivity) {
         this.activity = activity;
         this.imageTrackerActivity = imageTrackerActivity;
@@ -68,6 +74,32 @@ class ImageTrackerRenderer implements Renderer {
         chromaKeyVideoRenderer.setVideoPlayer(player);
         player.openVideo("FETTE.mp4");
 
+        videoGlacier = new ChromaKeyVideoRenderer();
+        VideoPlayer p1 = new VideoPlayer(activity);
+        p1.openVideo("step1.mp4");
+        videoGlacier.setVideoPlayer(p1);
+
+        videoLabel2 = new ChromaKeyVideoRenderer();
+        VideoPlayer p2 = new VideoPlayer(activity);
+        p2.openVideo("step2.mp4");
+        videoLabel2.setVideoPlayer(p2);
+
+        videoLabel3 = new ChromaKeyVideoRenderer();
+        VideoPlayer p3 = new VideoPlayer(activity);
+        p3.openVideo("VideoSample.mp4");
+        videoLabel3.setVideoPlayer(p3);
+
+        videoLabel4 = new ChromaKeyVideoRenderer();
+        VideoPlayer p4 = new VideoPlayer(activity);
+        p4.openVideo("FETTE.mp4");
+        videoLabel4.setVideoPlayer(p4);
+
+        videoMachine = new ChromaKeyVideoRenderer();
+        VideoPlayer p5 = new VideoPlayer(activity);
+        p5.openVideo("step1.mp4");
+        videoMachine.setVideoPlayer(p5);
+
+
         backgroundRenderHelper = new BackgroundRenderHelper();
         CameraDevice.getInstance().setClippingPlane(0.03f, 70.0f);
     }
@@ -76,8 +108,8 @@ class ImageTrackerRenderer implements Renderer {
     public void onSurfaceChanged(GL10 unused, int width, int height) {
         surfaceWidth = width;
         surfaceHeight = height;
-        imageTrackerActivity.surfaceWidth = width;
-        imageTrackerActivity.surfaceHeight = height;
+
+        ((ImageTrackerActivity) activity).updateSurfaceSize(width, height);
 
         MaxstAR.onSurfaceChanged(width, height);
     }
@@ -94,6 +126,10 @@ class ImageTrackerRenderer implements Renderer {
         float[] projectionMatrix = CameraDevice.getInstance().getProjectionMatrix();
         float[] backgroundPlaneInfo = CameraDevice.getInstance().getBackgroundPlaneInfo();
 
+
+        ((ImageTrackerActivity) activity).updateProjection(projectionMatrix);
+
+
         if (Build.MANUFACTURER.equals("vuzix")) {
             backgroundRenderHelper.drawBackground(image, projectionMatrix, backgroundPlaneInfo, true, true);
         } else {
@@ -107,14 +143,12 @@ class ImageTrackerRenderer implements Renderer {
         float glacierWidth = 0;
         float glacierHeight = 0;
 
+        float glacierWidthModel = 0;
+        float glacierHeightModel = 0;
+
         boolean legoDetected = false;
         boolean blocksDetected = false;
         boolean fetteDetected = false;
-
-
-        float[] legoPose = null, blocksPose = null;
-        float lw = 0, lh = 0, bw = 0, bh = 0;
-
 
         int count = trackingResult.getCount();
         Log.d("MAXST_COUNT", "Detected targets = " + count);
@@ -132,61 +166,50 @@ class ImageTrackerRenderer implements Renderer {
                             videoRenderer.getVideoPlayer().getState() == VideoPlayer.STATE_PAUSE) {
                         //    videoRenderer.getVideoPlayer().start();
                     }
-
                     videoRenderer.setProjectionMatrix(projectionMatrix);
                     videoRenderer.setTransform(trackable.getPoseMatrix());
-                    videoRenderer.setTranslate(0.0f, 0.0f, 0.0f);
+                    //    videoRenderer.setTranslate(0.0f, 0.0f, 0.0f);
                     videoRenderer.setScale(trackable.getWidth(), trackable.getHeight(), 1.0f);
-                    //	videoRenderer.draw();
+                    videoRenderer.draw();
                     legoDetected = true;
-                    legoPose = trackable.getPoseMatrix();
-                    lw = trackable.getWidth();
-                    lh = trackable.getHeight();
-
                     break;
 
                 case "Blocks":
-
                     if (chromaKeyVideoRenderer.getVideoPlayer().getState() == VideoPlayer.STATE_READY ||
                             chromaKeyVideoRenderer.getVideoPlayer().getState() == VideoPlayer.STATE_PAUSE) {
-                        //    chromaKeyVideoRenderer.getVideoPlayer().start();
+                        chromaKeyVideoRenderer.getVideoPlayer().start();
                     }
 
                     chromaKeyVideoRenderer.setProjectionMatrix(projectionMatrix);
                     chromaKeyVideoRenderer.setTransform(trackable.getPoseMatrix());
                     chromaKeyVideoRenderer.setTranslate(0.0f, 0.0f, 0.0f);
                     chromaKeyVideoRenderer.setScale(trackable.getWidth(), trackable.getHeight(), 1.0f);
-                    //	chromaKeyVideoRenderer.draw();
+                    chromaKeyVideoRenderer.draw();
 
                     blocksDetected = true;
-                    blocksPose = trackable.getPoseMatrix();
-                    bw = trackable.getWidth();
-                    bh = trackable.getHeight();
                     break;
 
                 case "Glacier":
-                    glacierDetected = true;
-                    glacierPose = trackable.getPoseMatrix();
                     glacierWidth = trackable.getWidth();
                     glacierHeight = trackable.getHeight();
+                    glacierWidthModel = trackable.getWidth();
+                    glacierHeightModel = trackable.getHeight();
                     glacierDetected = true;
 
                     if (chromaKeyVideoRenderer.getVideoPlayer().getState() == VideoPlayer.STATE_READY ||
                             chromaKeyVideoRenderer.getVideoPlayer().getState() == VideoPlayer.STATE_PAUSE) {
-                        //    chromaKeyVideoRenderer.getVideoPlayer().start();
+                        //   chromaKeyVideoRenderer.getVideoPlayer().start();
                     }
-
                     chromaKeyVideoRenderer.setProjectionMatrix(projectionMatrix);
-                    chromaKeyVideoRenderer.setTransform(glacierPose);
+                    chromaKeyVideoRenderer.setTransform(trackable.getPoseMatrix());
+                    //    chromaKeyVideoRenderer.setTranslate(0.0f, 0.0f, 0.0f);
+                    chromaKeyVideoRenderer.setScale(trackable.getWidth(), trackable.getHeight(), 1.0f);
+                    //    chromaKeyVideoRenderer.draw();
 
-                    float offsetX = -glacierWidth * 1.3f;
-                    float offsetY = 0.0f;
-                    float offsetZ = 0.0f;
-
-                    chromaKeyVideoRenderer.setTranslate(offsetX, offsetY, offsetZ);
-                    //	chromaKeyVideoRenderer.setTranslate(0.0f, 0.0f, 0.0f);
-                    chromaKeyVideoRenderer.setScale(glacierWidth, glacierHeight, 1.0f);
-                    //	chromaKeyVideoRenderer.draw();
+                    float[] rawPose = trackable.getPoseMatrix();
+                    ImageTrackerActivity act = (ImageTrackerActivity) activity;
+                    act.smoothedGlacierPose = act.smoothPose(act.smoothedGlacierPose, rawPose);
+                    glacierPose = act.smoothedGlacierPose;
 
                     break;
 
@@ -200,7 +223,7 @@ class ImageTrackerRenderer implements Renderer {
 
                     chromaKeyVideoRenderer.setProjectionMatrix(projectionMatrix);
                     chromaKeyVideoRenderer.setTransform(trackable.getPoseMatrix());
-                    chromaKeyVideoRenderer.setTranslate(0.0f, 0.0f, 0.0f);
+                    //   chromaKeyVideoRenderer.setTranslate(0.0f, 0.0f, 0.0f);
                     chromaKeyVideoRenderer.setScale(trackable.getWidth(), trackable.getHeight(), 1.0f);
                     chromaKeyVideoRenderer.draw();
                     break;
@@ -219,17 +242,113 @@ class ImageTrackerRenderer implements Renderer {
 
         ImageTrackerActivity imageTrackerActivity = (ImageTrackerActivity) activity;
 
-        if (glacierDetected)
-            imageTrackerActivity.updateGlacierPose(glacierPose, glacierWidth, glacierHeight);
-        else imageTrackerActivity.hideGlacier();
+        if (glacierDetected) {
+            float halfW = glacierWidth / 2f;
+            float halfH = glacierHeight / 2f;
 
-        if (legoDetected)
-            imageTrackerActivity.updateLegoPose(legoPose, lw, lh);
-        else imageTrackerActivity.hideLego();
+            // Top-left (x = -halfW, y = +halfH)
+            imageTrackerActivity.updateLabelAtModelPoint("Machine Model", glacierPose, glacierWidth, glacierHeight,
+                    -halfW, halfH, 0f, 0, -10);
 
-        if (blocksDetected)
-            imageTrackerActivity.updateBlocksPose(blocksPose, bw, bh);
-        else imageTrackerActivity.hideBlocks();
+            // Top-right (x = +halfW, y = +halfH)
+            imageTrackerActivity.updateLabelAtModelPoint("Label2", glacierPose, glacierWidth, glacierHeight,
+                    +halfW, halfH, 0f, 0, -10);
+
+            // Bottom-left (x = -halfW, y = -halfH)
+            imageTrackerActivity.updateLabelAtModelPoint("Label3", glacierPose, glacierWidth, glacierHeight,
+                    -halfW, -halfH, 0f, 0, 10);
+
+            // Bottom-right (x = +halfW, y = -halfH)
+            imageTrackerActivity.updateLabelAtModelPoint("Label1", glacierPose, glacierWidth, glacierHeight,
+                    +halfW, -halfH, 0f, 0, 10);
+
+            // Center
+            imageTrackerActivity.updateLabelAtModelPoint("Label4", glacierPose, glacierWidth, glacierHeight,
+                    0f, 0f, 0f, 0, 0);
+
+            imageTrackerActivity.updateGlacierPose(glacierPose, glacierWidthModel, glacierHeightModel, false);
+
+        } else {
+            imageTrackerActivity.hideLabel("Label1");
+            imageTrackerActivity.hideLabel("Label2");
+            imageTrackerActivity.hideLabel("Label3");
+            imageTrackerActivity.hideLabel("Label4");
+            imageTrackerActivity.hideLabel("Machine Model");
+            imageTrackerActivity.hideGlacier();
+        }
+
+        ImageTrackerActivity act = (ImageTrackerActivity) activity;
+
+        if (act.activeLabel != null && glacierDetected) {
+
+            ChromaKeyVideoRenderer vid = null;
+
+            switch (act.activeLabel) {
+                case "Label1":
+                    vid = videoGlacier;
+                    break;
+                case "Label2":
+                    vid = videoLabel2;
+                    break;
+                case "Label3":
+                    vid = videoLabel3;
+                    break;
+                case "Label4":
+                    vid = videoLabel4;
+                    break;
+                case "Machine Model": {
+                    stopAllVideos();
+                    act.activeLabel = null;
+                    imageTrackerActivity.updateGlacierPose(glacierPose, glacierWidth, glacierHeight, true);
+                }
+                break;
+            }
+
+            if (vid != null) {
+                imageTrackerActivity.hideGlacier();
+                stopAllVideosExcept(vid);
+
+                vid.setProjectionMatrix(projectionMatrix);
+                vid.setTransform(glacierPose);
+                float vx = 0, vy = 0;
+
+                switch (act.activeLabel) {
+                    case "Label1":
+                        vx = glacierWidth * 0.4f;
+                        vy = glacierHeight * 0.05f;
+                        break;
+                    case "Label2":
+                        vx = glacierWidth * 0.3f;
+                        vy = glacierHeight * 0.9f;
+                        break;
+                    case "Label3":
+                        vx = -glacierWidth * 0.3f;
+                        vy = -glacierHeight * 0.1f;
+                        break;
+                    case "Label4":
+                        vx = glacierWidth * 0.1f;
+                        vy = glacierHeight * 0.5f;
+                        break;
+                }
+
+                vid.setTranslate(vx, vy, 0f);
+
+                // 4️⃣ Scale
+                vid.setScale(glacierWidth * 0.8f, glacierHeight * 0.5f, 1f);
+
+                // 5️⃣ Play selected video ONLY
+                VideoPlayer pl = vid.getVideoPlayer();
+                if (pl.getState() == VideoPlayer.STATE_READY ||
+                        pl.getState() == VideoPlayer.STATE_PAUSE) {
+                    pl.start();
+                }
+                vid.draw();
+            }
+        } else {
+            stopAllVideos();
+            act.activeLabel = null;
+        }
+
 
         if (!legoDetected && videoRenderer.getVideoPlayer().getState() == VideoPlayer.STATE_PLAYING) {
             videoRenderer.getVideoPlayer().pause();
@@ -237,12 +356,54 @@ class ImageTrackerRenderer implements Renderer {
 
         if (!blocksDetected && !fetteDetected &&
                 chromaKeyVideoRenderer.getVideoPlayer().getState() == VideoPlayer.STATE_PLAYING) {
-            chromaKeyVideoRenderer.getVideoPlayer().pause();
+            // chromaKeyVideoRenderer.getVideoPlayer().pause();
         }
     }
+
 
     void destroyVideoPlayer() {
         videoRenderer.getVideoPlayer().destroy();
         chromaKeyVideoRenderer.getVideoPlayer().destroy();
     }
+
+    private void stopAllVideosExcept(ChromaKeyVideoRenderer keep) {
+        ChromaKeyVideoRenderer[] all = {
+                videoGlacier,
+                videoLabel2,
+                videoLabel3,
+                videoLabel4,
+                videoMachine
+        };
+
+        for (ChromaKeyVideoRenderer v : all) {
+            if (v == null) continue;
+            if (v != keep) {
+                VideoPlayer p = v.getVideoPlayer();
+                if (p.getState() == VideoPlayer.STATE_PLAYING) {
+                    p.pause();
+                }
+            }
+        }
+    }
+
+    public void stopAllVideos() {
+        if (videoRenderer != null && videoRenderer.getVideoPlayer() != null) {
+            videoRenderer.getVideoPlayer().pause();
+        }
+        if (chromaKeyVideoRenderer != null && chromaKeyVideoRenderer.getVideoPlayer() != null) {
+            chromaKeyVideoRenderer.getVideoPlayer().pause();
+        }
+
+        if (videoGlacier != null && videoGlacier.getVideoPlayer() != null)
+            videoGlacier.getVideoPlayer().pause();
+        if (videoLabel2 != null && videoLabel2.getVideoPlayer() != null)
+            videoLabel2.getVideoPlayer().pause();
+        if (videoLabel3 != null && videoLabel3.getVideoPlayer() != null)
+            videoLabel3.getVideoPlayer().pause();
+        if (videoLabel4 != null && videoLabel4.getVideoPlayer() != null)
+            videoLabel4.getVideoPlayer().pause();
+        if (videoMachine != null && videoMachine.getVideoPlayer() != null)
+            videoMachine.getVideoPlayer().pause();
+    }
+
 }
