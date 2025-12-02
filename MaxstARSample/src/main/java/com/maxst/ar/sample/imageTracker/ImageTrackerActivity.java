@@ -7,6 +7,7 @@ package com.maxst.ar.sample.imageTracker;
 import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
@@ -21,8 +22,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.util.Log;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Surface;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -68,7 +72,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
     private FrameLayout labelContainer;
     private final Map<String, TextView> labelViews = new HashMap<>();
 
-    private final float[] projectionMatrix = new float[16];
+    public float[] projectionMatrix = new float[16];
     public String activeLabel = null;
     public float[] smoothedGlacierPose = null;
     private float SMOOTH_FACTOR = 0.2f;
@@ -112,6 +116,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         TrackerManager.getInstance().loadTrackerData();
 
         preferCameraResolution = getSharedPreferences(SampleUtil.PREF_NAME, Activity.MODE_PRIVATE).getInt(SampleUtil.PREF_KEY_CAM_RESOLUTION, 0);
+
     }
 
     private void initSceneformOverlay() {
@@ -139,6 +144,30 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         loadModelWithAnimation("file:///android_asset/Bee.glb", blocksNode);
 
     }
+
+    private void recreateSceneView() {
+        ViewGroup root = findViewById(R.id.root_layout);
+        SceneView oldView = findViewById(R.id.sceneView);
+
+        if (oldView != null) {
+            oldView.pause();
+            oldView.destroy();
+            root.removeView(oldView);
+        }
+
+        SceneView newSceneView = new SceneView(this);
+        newSceneView.setId(R.id.sceneView);
+        newSceneView.setBackgroundColor(Color.TRANSPARENT);
+
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+        );
+        newSceneView.setLayoutParams(lp);
+        root.addView(newSceneView, 1);
+        sceneView = newSceneView;
+    }
+
 
     private void loadModelWithAnimation(String path, Node node) {
 
@@ -198,7 +227,6 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         }
 
         MaxstAR.onResume();
-
 
         if (sceneView == null) {
             initSceneformOverlay();
@@ -271,6 +299,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
             CameraDevice.getInstance().flipVideo(CameraDevice.FlipDirection.HORIZONTAL, true);
             CameraDevice.getInstance().flipVideo(CameraDevice.FlipDirection.VERTICAL, true);
         }
+        //   recreateSceneView();
     }
 
 
@@ -382,7 +411,6 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         runOnUiThread(() -> glacierNode.setEnabled(false));
     }
 
-
     private Quaternion quaternionFromMatrix(float[] m) {
         float trace = m[0] + m[5] + m[10];
         float w, x, y, z;
@@ -418,6 +446,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
                                         float[] poseMatrix, float w, float h,
                                         float modelX, float modelY, float modelZ,
                                         float offsetX, float offsetY) {
+
         final float[] poseSnapshot = (poseMatrix == null) ? null : poseMatrix.clone();
 
         runOnUiThread(() -> {
@@ -433,15 +462,12 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
                 tv.setTypeface(Typeface.DEFAULT_BOLD);
                 tv.setPadding(16, 16, 16, 16);
                 tv.setBackgroundResource(R.drawable.label_bg_rounded);
-                tv.setOnClickListener(v -> {
-                    Toast.makeText(this, "Clicked: " + name, Toast.LENGTH_SHORT).show();
-                    activeLabel = name;
-                });
+
+                tv.setOnClickListener(v -> activeLabel = name);
                 applyLabelStyle(name, tv);
                 labelContainer.addView(tv);
                 labelViews.put(name, tv);
             }
-
 
             if (poseSnapshot == null) {
                 tv.setVisibility(View.GONE);
@@ -463,35 +489,65 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         });
     }
 
+    private float[] projectModelPointToScreen(float[] poseMatrix,
+                                              float modelX, float modelY, float modelZ) {
+
+        if (projectionMatrix == null) return null;
+        if (surfaceWidth == 0 || surfaceHeight == 0) return null;
+
+        // Model point in homogeneous coordinates
+        float[] modelPt = {modelX, modelY, modelZ, 1f};
+
+        // Step 1 — world = Pose * model
+        float[] worldPt = new float[4];
+        Matrix.multiplyMV(worldPt, 0, poseMatrix, 0, modelPt, 0);
+
+        // Step 2 — clip = Projection * world
+        float[] clip = new float[4];
+        Matrix.multiplyMV(clip, 0, projectionMatrix, 0, worldPt, 0);
+
+        if (clip[3] == 0f) return null;
+
+        // Perspective divide
+        float nx = clip[0] / clip[3];
+        float ny = clip[1] / clip[3];
+
+        // Convert NDC → screen pixels
+        float sx = (nx * 0.5f + 0.5f) * surfaceWidth;
+        float sy = (1f - (ny * 0.5f + 0.5f)) * surfaceHeight;
+
+        return new float[]{sx, sy};
+    }
+
     private void applyLabelStyle(String name, TextView tv) {
 
         switch (name) {
 
-            case "Machine Model":
-                tv.setTextSize(12f);
-                setDrawableSize(tv, R.drawable.cancel, 90, 90);  // custom icon size
-                setTextViewSize(tv, 300, 150); // width, height
+            case "View Model":
+                tv.setTextSize(8f);
+                setDrawableSizeModel(tv, R.drawable.viewicon, 60, 60);  // custom icon size
+                setTextViewSize(tv, 270, 100); // width, height
                 break;
 
-            case "Label1":
-                tv.setTextSize(12f);
-                setDrawableSize(tv, R.drawable.search, 80, 80);
-                setTextViewSize(tv, 250, 140);
+            case "Step 1":
+                tv.setTextSize(8f);
+                setDrawableSize(tv, R.drawable.stepicon, 60, 60);
+                setTextViewSize(tv, 240, 90);
                 break;
 
-            case "Label2":
-                tv.setTextSize(12f);
-                setDrawableSize(tv, R.drawable.backarrow, 70, 70);
-                setTextViewSize(tv, 270, 130);
+            case "Step 2":
+                tv.setTextSize(8f);
+                setDrawableSize(tv, R.drawable.stepicon, 60, 60);
+                setTextViewSize(tv, 240, 90);
                 break;
 
-            case "Label3":
+            case "Step3":
                 tv.setTextSize(10f);
                 setDrawableSize(tv, R.drawable.backarrow, 70, 70);
                 setTextViewSize(tv, 350, 135);
                 break;
 
-            case "Label4":
+            case "Step4":
                 tv.setTextSize(10f);
                 setTextViewSize(tv, 240, 120);
                 setDrawableSize(tv, R.drawable.backarrow, 70, 70);
@@ -506,6 +562,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
     private void setTextViewSize(TextView tv, int width, int height) {
         LinearLayout.LayoutParams params =
                 new LinearLayout.LayoutParams(width, height);
+        tv.setGravity(Gravity.CENTER);
         tv.setLayoutParams(params);
     }
 
@@ -513,36 +570,14 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
     private void setDrawableSize(TextView tv, int resId, int width, int height) {
         Drawable d = getResources().getDrawable(resId);
         d.setBounds(0, 0, width, height);
-        d.setTint(Color.WHITE);
+        //  d.setTint(Color.WHITE);
         tv.setCompoundDrawables(d, null, null, null);
     }
 
-
-    private float[] projectModelPointToScreen(float[] poseMatrix, float modelX, float modelY, float modelZ) {
-        if (projectionMatrix == null) return null;
-        if (surfaceWidth == 0 || surfaceHeight == 0) return null;
-
-        // model point in homogeneous coords
-        float[] pt = {modelX, modelY, modelZ, 1f};
-
-        // P * M
-        float[] pm = new float[16];
-        Matrix.multiplyMM(pm, 0, projectionMatrix, 0, poseMatrix, 0);
-        //    Matrix.multiplyMM(pm, 0, projectionMatrix, 0, sceneformPose, 0);
-
-
-        float[] clip = new float[4];
-        Matrix.multiplyMV(clip, 0, pm, 0, pt, 0);
-
-        if (clip[3] == 0f) return null;
-
-        float nx = clip[0] / clip[3];
-        float ny = clip[1] / clip[3];
-
-        float sx = (nx * 0.5f + 0.5f) * surfaceWidth;
-        float sy = (1f - (ny * 0.5f + 0.5f)) * surfaceHeight;
-
-        return new float[]{sx, sy};
+    private void setDrawableSizeModel(TextView tv, int resId, int width, int height) {
+        Drawable d = getResources().getDrawable(resId);
+        d.setBounds(0, 0, width, height);
+        tv.setCompoundDrawables(d, null, null, null);
     }
 
     private void quaternionToMatrix(float[] q, float[] out) {

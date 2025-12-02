@@ -4,6 +4,7 @@
 package com.maxst.ar.sample.imageTracker;
 
 import android.app.Activity;
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView.Renderer;
@@ -19,6 +20,7 @@ import com.maxst.ar.TrackedImage;
 import com.maxst.ar.TrackerManager;
 import com.maxst.ar.TrackingResult;
 import com.maxst.ar.TrackingState;
+import com.maxst.ar.sample.R;
 import com.maxst.ar.sample.arobject.BackgroundRenderHelper;
 import com.maxst.ar.sample.arobject.ChromaKeyVideoRenderer;
 import com.maxst.ar.sample.arobject.ColoredCubeRenderer;
@@ -86,12 +88,14 @@ class ImageTrackerRenderer implements Renderer {
 
         videoLabel3 = new ChromaKeyVideoRenderer();
         VideoPlayer p3 = new VideoPlayer(activity);
-        p3.openVideo("VideoSample.mp4");
+        p3.openVideo("step2.mp4");
+        //  p3.openVideo("step2.mp4");
         videoLabel3.setVideoPlayer(p3);
 
         videoLabel4 = new ChromaKeyVideoRenderer();
         VideoPlayer p4 = new VideoPlayer(activity);
-        p4.openVideo("FETTE.mp4");
+        // p4.openVideo("FETTE.mp4");
+        p4.openVideo("push.mp4");
         videoLabel4.setVideoPlayer(p4);
 
         videoMachine = new ChromaKeyVideoRenderer();
@@ -108,7 +112,6 @@ class ImageTrackerRenderer implements Renderer {
     public void onSurfaceChanged(GL10 unused, int width, int height) {
         surfaceWidth = width;
         surfaceHeight = height;
-
         ((ImageTrackerActivity) activity).updateSurfaceSize(width, height);
 
         MaxstAR.onSurfaceChanged(width, height);
@@ -124,8 +127,12 @@ class ImageTrackerRenderer implements Renderer {
         TrackedImage image = state.getImage();
 
         float[] projectionMatrix = CameraDevice.getInstance().getProjectionMatrix();
+
         float[] backgroundPlaneInfo = CameraDevice.getInstance().getBackgroundPlaneInfo();
 
+
+        ImageTrackerActivity acts = (ImageTrackerActivity) activity;
+        // float[] projectionMatrix = acts.projectionMatrix;
 
         ((ImageTrackerActivity) activity).updateProjection(projectionMatrix);
 
@@ -189,7 +196,7 @@ class ImageTrackerRenderer implements Renderer {
                     blocksDetected = true;
                     break;
 
-                case "Glacier":
+                case "FetteMachine":
                     glacierWidth = trackable.getWidth();
                     glacierHeight = trackable.getHeight();
                     glacierWidthModel = trackable.getWidth();
@@ -213,7 +220,7 @@ class ImageTrackerRenderer implements Renderer {
 
                     break;
 
-                case "FetteMachine":
+                case "Glacier":
                     fetteDetected = true;
 
                     if (chromaKeyVideoRenderer.getVideoPlayer().getState() == VideoPlayer.STATE_READY ||
@@ -246,34 +253,37 @@ class ImageTrackerRenderer implements Renderer {
             float halfW = glacierWidth / 2f;
             float halfH = glacierHeight / 2f;
 
-            // Top-left (x = -halfW, y = +halfH)
-            imageTrackerActivity.updateLabelAtModelPoint("Machine Model", glacierPose, glacierWidth, glacierHeight,
-                    -halfW, halfH, 0f, 0, -10);
+            float extra = glacierWidth * 0.4f;
+            float extraY = glacierWidth * 0.1f;
 
-            // Top-right (x = +halfW, y = +halfH)
-            imageTrackerActivity.updateLabelAtModelPoint("Label2", glacierPose, glacierWidth, glacierHeight,
-                    +halfW, halfH, 0f, 0, -10);
+            // Top-left (x = -halfW, y = +halfH)
+            imageTrackerActivity.updateLabelAtModelPoint("View Model", glacierPose, glacierWidth, glacierHeight,
+                    -halfW - extra, halfH - extraY, 0f, 0, -10);
+
+//            // Top-right (x = +halfW, y = +halfH)
+//            imageTrackerActivity.updateLabelAtModelPoint("Step3", glacierPose, glacierWidth, glacierHeight,
+//                    +halfW, halfH, 0f, 0, -10);
 
             // Bottom-left (x = -halfW, y = -halfH)
-            imageTrackerActivity.updateLabelAtModelPoint("Label3", glacierPose, glacierWidth, glacierHeight,
-                    -halfW, -halfH, 0f, 0, 10);
+            imageTrackerActivity.updateLabelAtModelPoint("Step 2", glacierPose, glacierWidth, glacierHeight,
+                    -halfW - extra, -halfH + extraY, 0f, 0, 10);
 
             // Bottom-right (x = +halfW, y = -halfH)
-            imageTrackerActivity.updateLabelAtModelPoint("Label1", glacierPose, glacierWidth, glacierHeight,
-                    +halfW, -halfH, 0f, 0, 10);
+            imageTrackerActivity.updateLabelAtModelPoint("Step 1", glacierPose, glacierWidth, glacierHeight,
+                    +halfW + extra, -halfH + extraY, 0f, 0, 10);
 
-            // Center
-            imageTrackerActivity.updateLabelAtModelPoint("Label4", glacierPose, glacierWidth, glacierHeight,
-                    0f, 0f, 0f, 0, 0);
+//            // Center
+//            imageTrackerActivity.updateLabelAtModelPoint("Step4", glacierPose, glacierWidth, glacierHeight,
+//                    0f, 0f, 0f, 0, 0);
 
             imageTrackerActivity.updateGlacierPose(glacierPose, glacierWidthModel, glacierHeightModel, false);
 
         } else {
-            imageTrackerActivity.hideLabel("Label1");
-            imageTrackerActivity.hideLabel("Label2");
-            imageTrackerActivity.hideLabel("Label3");
-            imageTrackerActivity.hideLabel("Label4");
-            imageTrackerActivity.hideLabel("Machine Model");
+            imageTrackerActivity.hideLabel("Step 1");
+            imageTrackerActivity.hideLabel("Step3");
+            imageTrackerActivity.hideLabel("Step 2");
+            imageTrackerActivity.hideLabel("Step4");
+            imageTrackerActivity.hideLabel("View Model");
             imageTrackerActivity.hideGlacier();
         }
 
@@ -284,19 +294,19 @@ class ImageTrackerRenderer implements Renderer {
             ChromaKeyVideoRenderer vid = null;
 
             switch (act.activeLabel) {
-                case "Label1":
+                case "Step 1":
                     vid = videoGlacier;
                     break;
-                case "Label2":
+                case "Step3":
                     vid = videoLabel2;
                     break;
-                case "Label3":
+                case "Step 2":
                     vid = videoLabel3;
                     break;
-                case "Label4":
+                case "Step4":
                     vid = videoLabel4;
                     break;
-                case "Machine Model": {
+                case "View Model": {
                     stopAllVideos();
                     act.activeLabel = null;
                     imageTrackerActivity.updateGlacierPose(glacierPose, glacierWidth, glacierHeight, true);
@@ -313,28 +323,29 @@ class ImageTrackerRenderer implements Renderer {
                 float vx = 0, vy = 0;
 
                 switch (act.activeLabel) {
-                    case "Label1":
+                    case "Step 1":
                         vx = glacierWidth * 0.4f;
-                        vy = glacierHeight * 0.05f;
+                        vy = -glacierHeight * 0.1f;
                         break;
-                    case "Label2":
+                    case "Step3":
                         vx = glacierWidth * 0.3f;
                         vy = glacierHeight * 0.9f;
                         break;
-                    case "Label3":
+                    case "Step 2":
                         vx = -glacierWidth * 0.3f;
                         vy = -glacierHeight * 0.1f;
                         break;
-                    case "Label4":
+                    case "Step4":
                         vx = glacierWidth * 0.1f;
-                        vy = glacierHeight * 0.5f;
+                        vy = glacierHeight * 0.4f;
                         break;
                 }
 
                 vid.setTranslate(vx, vy, 0f);
 
                 // 4️⃣ Scale
-                vid.setScale(glacierWidth * 0.8f, glacierHeight * 0.5f, 1f);
+                vid.setScale(glacierWidth * 1.8f, glacierHeight * 0.5f, 1f);
+                //    vid.setScale(glacierWidth * 2.2f, glacierHeight * 0.5f, 1f);
 
                 // 5️⃣ Play selected video ONLY
                 VideoPlayer pl = vid.getVideoPlayer();
