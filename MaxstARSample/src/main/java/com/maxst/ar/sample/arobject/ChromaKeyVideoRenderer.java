@@ -6,7 +6,6 @@ package com.maxst.ar.sample.arobject;
 
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-
 import com.maxst.ar.sample.util.ShaderUtil;
 import com.maxst.videoplayer.VideoPlayer;
 
@@ -62,7 +61,7 @@ public class ChromaKeyVideoRenderer extends BaseRenderer {
 
     private VideoPlayer videoPlayer;
     private boolean videoSizeAcquired = false;
-
+    private boolean shouldUpdateVideo = true;
     public ChromaKeyVideoRenderer() {
         super();
         ByteBuffer bb = ByteBuffer.allocateDirect(VERTEX_BUF.length * Float.SIZE / 8);
@@ -106,7 +105,6 @@ public class ChromaKeyVideoRenderer extends BaseRenderer {
             if (videoWidth == 0 || videoHeight == 0) {
                 return;
             }
-
             videoSizeAcquired = true;
 
             GLES20.glGenTextures(1, textureNames, 0);
@@ -122,11 +120,17 @@ public class ChromaKeyVideoRenderer extends BaseRenderer {
             return;
         }
 
-        if (videoPlayer.getState() != VideoPlayer.STATE_PLAYING) {
+        if (videoPlayer.getState() != VideoPlayer.STATE_PLAYING ) {
             return;
         }
 
-        videoPlayer.update();
+        if (videoPlayer != null) {
+            if (shouldUpdateVideo) {
+                videoPlayer.update();
+            } else {
+                videoPlayer.pause();
+            }
+        }
 
         if (!videoPlayer.isTextureDrawable()) {
             return;
@@ -169,10 +173,31 @@ public class ChromaKeyVideoRenderer extends BaseRenderer {
     }
 
     public void setVideoPlayer(VideoPlayer videoPlayer) {
-        this.videoPlayer = videoPlayer;
-    }
+        this.videoPlayer = videoPlayer;}
 
     public VideoPlayer getVideoPlayer() {
         return this.videoPlayer;
+    }
+    public void resetSize() {
+        videoSizeAcquired = false;
+        if (textureNames != null && textureNames[0] != 0) {
+            GLES20.glDeleteTextures(1, textureNames, 0);
+            textureNames[0] = 0;
+        }
+    }
+    public float[] getCurrentModelMatrix() {
+        float[] tmp = new float[16];
+        float[] result = new float[16];
+
+        Matrix.setIdentityM(tmp, 0);
+        Matrix.multiplyMM(tmp, 0, translation, 0, rotation, 0);   // tmp = translation * rotation
+        Matrix.multiplyMM(tmp, 0, tmp, 0, scale, 0);              // tmp = (translation*rotation) * scale
+        Matrix.setIdentityM(result, 0);
+        Matrix.multiplyMM(result, 0, transform, 0, tmp, 0);       // result = transform * tmp
+
+        return result;
+    }
+    public void setShouldUpdateVideo(boolean shouldUpdate) {
+        this.shouldUpdateVideo = shouldUpdate;
     }
 }
