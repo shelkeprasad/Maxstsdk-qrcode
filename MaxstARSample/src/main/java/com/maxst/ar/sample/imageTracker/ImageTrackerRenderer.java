@@ -147,16 +147,40 @@ class ImageTrackerRenderer implements Renderer {
         for (int i = 0; i < trackingResult.getCount(); i++) {
             Trackable trackable = trackingResult.getTrackable(i);
             String name = trackable.getName();
+            ImageTrackerActivity act = (ImageTrackerActivity) activity;
+            float[] rawPose = trackable.getPoseMatrix();
+            act.smoothedPose = act.smoothPose(act.smoothedPose, rawPose);
+
             switch (name) {
+
                 case "FetteMachine":
                     width = trackable.getWidth();
                     height = trackable.getHeight();
                     fetteDetected = true;
-                    float[] rawPose = trackable.getPoseMatrix();
-                    ImageTrackerActivity act = (ImageTrackerActivity) activity;
-                    act.smoothedPose = act.smoothPose(act.smoothedPose, rawPose);
                     pose = act.smoothedPose;
+                    imageTrackerActivity.updateGlacierPose(pose, width, height, false, "", 0.5f);
+                    break;
 
+                case "Lego":
+                    width = trackable.getWidth();
+                    height = trackable.getHeight();
+                    fetteDetected = true;
+                    pose = act.smoothedPose;
+                    imageTrackerActivity.updateGlacierPose(pose, width, height, false, "", 0.5f);
+                    break;
+                case "Blocks":
+                    width = trackable.getWidth();
+                    height = trackable.getHeight();
+                    fetteDetected = true;
+                    pose = act.smoothedPose;
+                    imageTrackerActivity.updateGlacierPose(pose, width, height, false, "", 0.5f);
+                    break;
+
+                case "Glacier":
+                    width = trackable.getWidth();
+                    height = trackable.getHeight();
+                    fetteDetected = true;
+                    pose = act.smoothedPose;
                     imageTrackerActivity.updateGlacierPose(pose, width, height, false, "", 0.5f);
                     break;
 
@@ -285,14 +309,17 @@ class ImageTrackerRenderer implements Renderer {
                     float vy = vcfg.translate.yFactor * height;
                     float vz = vcfg.translate.z;
 
-                    sharedChromaRenderer.setTranslate(vx, vy, vz);
+               //     sharedChromaRenderer.setTranslate(vx, vy, vz);
+                    sharedChromaRenderer.setTranslate(0.0f, 0.0f, 0.0f);
 
                     // 4) Scale from config
-                    sharedChromaRenderer.setScale(
-                            width * vcfg.scale.widthFactor,
-                            height * vcfg.scale.heightFactor,
-                            1f
-                    );
+//                    sharedChromaRenderer.setScale(
+//                            width * vcfg.scale.widthFactor,
+//                            height * vcfg.scale.heightFactor,
+//                            1f
+//                    );
+
+                    sharedChromaRenderer.setScale(width, height, 1.0f);
 
                     // 5) Start the selected video
                     if (vpl.getState() == VideoPlayer.STATE_READY ||
