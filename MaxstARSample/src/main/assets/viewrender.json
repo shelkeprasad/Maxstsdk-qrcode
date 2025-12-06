@@ -12,9 +12,11 @@
             "path": "file:///android_asset/pneumatic_engine.glb",
             "initialEnabled": true,
             "size": 0.02,
+            "type":23 ,
             "animation": {
               "autoPlay": true,
               "loop": true,
+              "duration": 5000,
               "animationIndex": 1
             }
           },
@@ -24,9 +26,11 @@
             "path": "file:///android_asset/Bee.glb",
             "size": 0.08,
             "initialEnabled": true,
+            "type":23 ,
             "animation": {
               "autoPlay": true,
               "loop": true,
+              "duration": 5000,
               "animationIndex": 1
             }
           },
@@ -36,9 +40,25 @@
             "path": "file:///android_asset/tower_machine.glb",
             "size": 1.8,
             "initialEnabled": true,
+            "type":23 ,
             "animation": {
               "autoPlay": true,
               "loop": true,
+              "duration": 5000,
+              "animationIndex": 1
+            }
+          },
+          {
+            "id": "MaxstAR_Cube",
+            "name": "MaxstAR_Cube",
+            "path": "file:///android_asset/MaxstAR_Cube.png",
+            "initialEnabled": true,
+            "size": 0.02,
+            "type":17,
+            "animation": {
+              "autoPlay": true,
+              "loop": true,
+              "duration": 5000,
               "animationIndex": 1
             }
           }
@@ -49,13 +69,14 @@
             "name": "Step1Video",
             "path": "file:///android_asset/step1.mp4",
             "initialEnabled": true,
+            "type":8 ,
             "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
+              "width": 1.8,
+              "height": 0.5
             },
             "translate": {
-              "xFactor": 1.2,
-              "yFactor": 0.05,
+              "x": 1.2,
+              "y": 0.05,
               "z": 0
             }
           },
@@ -64,13 +85,14 @@
             "name": "Step2Video",
             "path": "file:///android_asset/step2.mp4",
             "initialEnabled": false,
+            "type":8 ,
             "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
+              "width": 1.8,
+              "height": 0.5
             },
             "translate": {
-              "xFactor": -0.9,
-              "yFactor": 0.05,
+              "x": -0.9,
+              "y": 0.05,
               "z": 0
             }
           },
@@ -79,13 +101,14 @@
             "name": "Step3Video",
             "path": "file:///android_asset/step1.mp4",
             "initialEnabled": true,
+            "type":8,
             "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
+              "width": 1.8,
+              "height": 0.5
             },
             "translate": {
-              "xFactor": -0.9,
-              "yFactor": 0.05,
+              "x": -0.9,
+              "y": 0.05,
               "z": 0
             }
           },
@@ -94,13 +117,14 @@
             "name": "Step4Video",
             "path": "file:///android_asset/FETTE.mp4",
             "initialEnabled": true,
+            "type":8,
             "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
+              "width": 1.8,
+              "height": 0.5
             },
             "translate": {
-              "xFactor": 1.2,
-              "yFactor": 0.05,
+              "x": 1.2,
+              "y": 0.05,
               "z": 0
             }
           }
@@ -109,6 +133,7 @@
           {
             "id": "label_view_model",
             "text": "View Model",
+            "type":24 ,
             "anchor": {
               "xRel": -0.5,
               "yRel": 0.5,
@@ -127,6 +152,7 @@
           {
             "id": "label_view_model_bee",
             "text": "Bee Model",
+            "type":24 ,
             "anchor": {
               "xRel": -0.5,
               "yRel": 0.5,
@@ -145,6 +171,7 @@
           {
             "id": "view_model_tower_machine",
             "text": "Tower Model",
+            "type":24,
             "anchor": {
               "xRel": -0.5,
               "yRel": 0.5,
@@ -163,6 +190,7 @@
           {
             "id": "label_step1",
             "text": "Step 1",
+            "type":24,
             "anchor": {
               "xRel": 0.5,
               "yRel": -0.5,
@@ -180,6 +208,7 @@
           {
             "id": "label_step2",
             "text": "Step 2",
+            "type":24,
             "anchor": {
               "xRel": -0.5,
               "yRel": -0.5,
@@ -197,6 +226,7 @@
           {
             "id": "label_step3",
             "text": "Step 3",
+            "type":24,
             "anchor": {
               "xRel": -0.5,
               "yRel": -0.5,
@@ -214,6 +244,7 @@
           {
             "id": "label_step4",
             "text": "Step 4",
+            "type":24,
             "anchor": {
               "xRel": 0.5,
               "yRel": -0.5,
@@ -238,227 +269,37 @@
       "assets": {
         "models": [
           {
+            "id": "MaxstAR_Cube",
+            "name": "MaxstAR_Cube",
+            "path": "file:///android_asset/MaxstAR_Cube.png",
+            "initialEnabled": true,
+            "size": 0.02,
+            "type":17,
+            "animation": {
+              "autoPlay": true,
+              "loop": true,
+              "duration": 5000,
+              "animationIndex": 1
+            }
+          },
+          {
             "id": "pneumatic_engine",
             "name": "PneumaticEngine",
             "path": "file:///android_asset/pneumatic_engine.glb",
             "initialEnabled": true,
             "size": 0.02,
+            "type":23 ,
             "animation": {
               "autoPlay": true,
               "loop": true,
-              "animationIndex": 1
-            }
-          },
-          {
-            "id": "bee_model",
-            "name": "Bee",
-            "path": "file:///android_asset/Bee.glb",
-            "size": 0.08,
-            "initialEnabled": true,
-            "animation": {
-              "autoPlay": true,
-              "loop": true,
-              "animationIndex": 1
-            }
-          },
-          {
-            "id": "tower_model",
-            "name": "Tower",
-            "path": "file:///android_asset/tower_machine.glb",
-            "size": 1.8,
-            "initialEnabled": true,
-            "animation": {
-              "autoPlay": true,
-              "loop": true,
+              "duration": 5000,
               "animationIndex": 1
             }
           }
         ],
         "videos": [
-          {
-            "id": "video_step5",
-            "name": "Step5Video",
-            "path": "file:///android_asset/step1.mp4",
-            "initialEnabled": true,
-            "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
-            },
-            "translate": {
-              "xFactor": 0.0,
-              "yFactor": 0.0,
-              "z": 0
-            }
-          },
-          {
-            "id": "video_step6",
-            "name": "Step6Video",
-            "path": "file:///android_asset/step2.mp4",
-            "initialEnabled": false,
-            "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
-            },
-            "translate": {
-              "xFactor": 0.0,
-              "yFactor": 0.0,
-              "z": 0
-            }
-          },
-          {
-            "id": "video_step7",
-            "name": "Step7Video",
-            "path": "file:///android_asset/step1.mp4",
-            "initialEnabled": true,
-            "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
-            },
-            "translate": {
-              "xFactor": 0.0,
-              "yFactor": 0.0,
-              "z": 0
-            }
-          },
-          {
-            "id": "video_step8",
-            "name": "Step8Video",
-            "path": "file:///android_asset/FETTE.mp4",
-            "initialEnabled": true,
-            "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
-            },
-            "translate": {
-              "xFactor": 0.0,
-              "yFactor": 0.0,
-              "z": 0
-            }
-          }
         ],
         "labels": [
-          {
-            "id": "label_view_model",
-            "text": "View Model",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": 0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": -20,
-              "y": -10
-            },
-            "onClickAction": {
-              "type": "showModel",
-              "targetModelId": "pneumatic_engine",
-              "enableModel": true
-            }
-          },
-          {
-            "id": "label_view_model_bee",
-            "text": "Bee Model",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": 0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": 600,
-              "y": -10
-            },
-            "onClickAction": {
-              "type": "showModel",
-              "targetModelId": "bee_model",
-              "enableModel": true
-            }
-          },
-          {
-            "id": "view_model_tower_machine",
-            "text": "Tower Model",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": 0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": 280,
-              "y": -10
-            },
-            "onClickAction": {
-              "type": "showModel",
-              "targetModelId": "tower_model",
-              "enableModel": true
-            }
-          },
-          {
-            "id": "label_step1",
-            "text": "Step 1",
-            "anchor": {
-              "xRel": 0.5,
-              "yRel": -0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": 290,
-              "y": 60
-            },
-            "onClickAction": {
-              "type": "playVideo",
-              "targetVideoId": "video_step5"
-            }
-          },
-          {
-            "id": "label_step2",
-            "text": "Step 2",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": -0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": -20,
-              "y": 60
-            },
-            "onClickAction": {
-              "type": "playVideo",
-              "targetVideoId": "video_step6"
-            }
-          },
-          {
-            "id": "label_step3",
-            "text": "Step 3",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": -0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": -30,
-              "y": 190
-            },
-            "onClickAction": {
-              "type": "playVideo",
-              "targetVideoId": "video_step7"
-            }
-          },
-          {
-            "id": "label_step4",
-            "text": "Step 4",
-            "anchor": {
-              "xRel": 0.5,
-              "yRel": -0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": 290,
-              "y": 190
-            },
-            "onClickAction": {
-              "type": "playVideo",
-              "targetVideoId": "video_step8"
-            }
-          }
         ]
       }
     },
@@ -468,228 +309,26 @@
       "mapPath": "ImageTarget/Lego.2dmap",
       "assets": {
         "models": [
-          {
-            "id": "pneumatic_engine",
-            "name": "PneumaticEngine",
-            "path": "file:///android_asset/pneumatic_engine.glb",
-            "initialEnabled": true,
-            "size": 0.02,
-            "animation": {
-              "autoPlay": true,
-              "loop": true,
-              "animationIndex": 1
-            }
-          },
-          {
-            "id": "bee_model",
-            "name": "Bee",
-            "path": "file:///android_asset/Bee.glb",
-            "size": 0.08,
-            "initialEnabled": true,
-            "animation": {
-              "autoPlay": true,
-              "loop": true,
-              "animationIndex": 1
-            }
-          },
-          {
-            "id": "tower_model",
-            "name": "Tower",
-            "path": "file:///android_asset/tower_machine.glb",
-            "size": 1.8,
-            "initialEnabled": true,
-            "animation": {
-              "autoPlay": true,
-              "loop": true,
-              "animationIndex": 1
-            }
-          }
         ],
         "videos": [
           {
             "id": "video_step1",
             "name": "Step1Video",
-            "path": "file:///android_asset/step1.mp4",
+            "path": "file:///android_asset/VideoSample.mp4",
+            "type":20,
             "initialEnabled": true,
             "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
+              "width": 1.8,
+              "height": 0.5
             },
             "translate": {
-              "xFactor": 0.0,
-              "yFactor": 0.0,
-              "z": 0
-            }
-          },
-          {
-            "id": "video_step2",
-            "name": "Step2Video",
-            "path": "file:///android_asset/step2.mp4",
-            "initialEnabled": false,
-            "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
-            },
-            "translate": {
-              "xFactor": 0.0,
-              "yFactor": 0.0,
-              "z": 0
-            }
-          },
-          {
-            "id": "video_step3",
-            "name": "Step3Video",
-            "path": "file:///android_asset/step1.mp4",
-            "initialEnabled": true,
-            "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
-            },
-            "translate": {
-              "xFactor": 0.0,
-              "yFactor": 0.0,
-              "z": 0
-            }
-          },
-          {
-            "id": "video_step4",
-            "name": "Step4Video",
-            "path": "file:///android_asset/FETTE.mp4",
-            "initialEnabled": true,
-            "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
-            },
-            "translate": {
-              "xFactor": 0.0,
-              "yFactor": 0.0,
+              "x": 0.0,
+              "y": 0.0,
               "z": 0
             }
           }
         ],
         "labels": [
-          {
-            "id": "label_view_model",
-            "text": "View Model",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": 0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": -20,
-              "y": -10
-            },
-            "onClickAction": {
-              "type": "showModel",
-              "targetModelId": "pneumatic_engine",
-              "enableModel": true
-            }
-          },
-          {
-            "id": "label_view_model_bee",
-            "text": "Bee Model",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": 0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": 600,
-              "y": -10
-            },
-            "onClickAction": {
-              "type": "showModel",
-              "targetModelId": "bee_model",
-              "enableModel": true
-            }
-          },
-          {
-            "id": "view_model_tower_machine",
-            "text": "Tower Model",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": 0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": 280,
-              "y": -10
-            },
-            "onClickAction": {
-              "type": "showModel",
-              "targetModelId": "tower_model",
-              "enableModel": true
-            }
-          },
-          {
-            "id": "label_step1",
-            "text": "Step 1",
-            "anchor": {
-              "xRel": 0.5,
-              "yRel": -0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": 290,
-              "y": 60
-            },
-            "onClickAction": {
-              "type": "playVideo",
-              "targetVideoId": "video_step1"
-            }
-          },
-          {
-            "id": "label_step2",
-            "text": "Step 2",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": -0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": -20,
-              "y": 60
-            },
-            "onClickAction": {
-              "type": "playVideo",
-              "targetVideoId": "video_step2"
-            }
-          },
-          {
-            "id": "label_step3",
-            "text": "Step 3",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": -0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": -30,
-              "y": 190
-            },
-            "onClickAction": {
-              "type": "playVideo",
-              "targetVideoId": "video_step3"
-            }
-          },
-          {
-            "id": "label_step4",
-            "text": "Step 4",
-            "anchor": {
-              "xRel": 0.5,
-              "yRel": -0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": 290,
-              "y": 190
-            },
-            "onClickAction": {
-              "type": "playVideo",
-              "targetVideoId": "video_step4"
-            }
-          }
         ]
       }
     },
@@ -699,228 +338,26 @@
       "mapPath": "ImageTarget/Blocks.2dmap",
       "assets": {
         "models": [
-          {
-            "id": "pneumatic_engine",
-            "name": "PneumaticEngine",
-            "path": "file:///android_asset/pneumatic_engine.glb",
-            "initialEnabled": true,
-            "size": 0.02,
-            "animation": {
-              "autoPlay": true,
-              "loop": true,
-              "animationIndex": 1
-            }
-          },
-          {
-            "id": "bee_model",
-            "name": "Bee",
-            "path": "file:///android_asset/Bee.glb",
-            "size": 0.08,
-            "initialEnabled": true,
-            "animation": {
-              "autoPlay": true,
-              "loop": true,
-              "animationIndex": 1
-            }
-          },
-          {
-            "id": "tower_model",
-            "name": "Tower",
-            "path": "file:///android_asset/tower_machine.glb",
-            "size": 1.8,
-            "initialEnabled": true,
-            "animation": {
-              "autoPlay": true,
-              "loop": true,
-              "animationIndex": 1
-            }
-          }
         ],
         "videos": [
           {
             "id": "video_step1",
             "name": "Step1Video",
-            "path": "file:///android_asset/step1.mp4",
+            "path": "file:///android_asset/ShutterShock.mp4",
             "initialEnabled": true,
+            "type":8,
             "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
+              "width": 1.8,
+              "height": 0.5
             },
             "translate": {
-              "xFactor": 0.0,
-              "yFactor": 0.0,
-              "z": 0
-            }
-          },
-          {
-            "id": "video_step2",
-            "name": "Step2Video",
-            "path": "file:///android_asset/step2.mp4",
-            "initialEnabled": false,
-            "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
-            },
-            "translate": {
-              "xFactor": 0.0,
-              "yFactor": 0.0,
-              "z": 0
-            }
-          },
-          {
-            "id": "video_step3",
-            "name": "Step3Video",
-            "path": "file:///android_asset/step1.mp4",
-            "initialEnabled": true,
-            "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
-            },
-            "translate": {
-              "xFactor": 0.0,
-              "yFactor": 0.0,
-              "z": 0
-            }
-          },
-          {
-            "id": "video_step4",
-            "name": "Step4Video",
-            "path": "file:///android_asset/FETTE.mp4",
-            "initialEnabled": true,
-            "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
-            },
-            "translate": {
-              "xFactor": 0.0,
-              "yFactor": 0.0,
+              "x": 0.0,
+              "y": 0.0,
               "z": 0
             }
           }
         ],
         "labels": [
-          {
-            "id": "label_view_model",
-            "text": "View Model",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": 0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": -20,
-              "y": -10
-            },
-            "onClickAction": {
-              "type": "showModel",
-              "targetModelId": "pneumatic_engine",
-              "enableModel": true
-            }
-          },
-          {
-            "id": "label_view_model_bee",
-            "text": "Bee Model",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": 0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": 600,
-              "y": -10
-            },
-            "onClickAction": {
-              "type": "showModel",
-              "targetModelId": "bee_model",
-              "enableModel": true
-            }
-          },
-          {
-            "id": "view_model_tower_machine",
-            "text": "Tower Model",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": 0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": 280,
-              "y": -10
-            },
-            "onClickAction": {
-              "type": "showModel",
-              "targetModelId": "tower_model",
-              "enableModel": true
-            }
-          },
-          {
-            "id": "label_step1",
-            "text": "Step 1",
-            "anchor": {
-              "xRel": 0.5,
-              "yRel": -0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": 290,
-              "y": 60
-            },
-            "onClickAction": {
-              "type": "playVideo",
-              "targetVideoId": "video_step1"
-            }
-          },
-          {
-            "id": "label_step2",
-            "text": "Step 2",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": -0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": -20,
-              "y": 60
-            },
-            "onClickAction": {
-              "type": "playVideo",
-              "targetVideoId": "video_step2"
-            }
-          },
-          {
-            "id": "label_step3",
-            "text": "Step 3",
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": -0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": -30,
-              "y": 190
-            },
-            "onClickAction": {
-              "type": "playVideo",
-              "targetVideoId": "video_step3"
-            }
-          },
-          {
-            "id": "label_step4",
-            "text": "Step 4",
-            "anchor": {
-              "xRel": 0.5,
-              "yRel": -0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": 290,
-              "y": 190
-            },
-            "onClickAction": {
-              "type": "playVideo",
-              "targetVideoId": "video_step4"
-            }
-          }
         ]
       }
     }

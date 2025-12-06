@@ -4,6 +4,7 @@ public class ModelConfig {
     public String id;
     public String name;
     public String path;
+    public int type ;
     public boolean initialEnabled = false;
     public float size = 1.0f;
     public float scaleRelativeToTargetWidth = 1.0f;
