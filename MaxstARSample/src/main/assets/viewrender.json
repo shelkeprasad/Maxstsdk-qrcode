@@ -103,7 +103,7 @@
             },
             "onClickAction": {
               "type": "showModel",
-              "targetModelId": "pneumatic_engine",
+              "targetModelId": "Motor View",
               "enableModel": true
             }
           },
