@@ -70,6 +70,7 @@ class ImageTrackerRenderer implements Renderer {
     private Map<String, LabelConfig> activeLabels = null;
     private Map<String, VideoPlayer> activePlayers = null;
     private VideoPlayer legacyPlayer = null;
+     private float[] rawPose ;
 
     ImageTrackerRenderer(Activity activity, ImageTrackerActivity imageTrackerActivity, Map<String, TrackerConfig> configs) {
         this.activity = activity;
@@ -194,7 +195,7 @@ class ImageTrackerRenderer implements Renderer {
             String name = trackable.getName();
 
             ImageTrackerActivity act = (ImageTrackerActivity) activity;
-            float[] rawPose = trackable.getPoseMatrix();
+            rawPose = trackable.getPoseMatrix();
             act.smoothedPose = act.smoothPose(act.smoothedPose, rawPose);
 
             if (trackerNames.contains(name)) {
@@ -274,6 +275,10 @@ class ImageTrackerRenderer implements Renderer {
             pauseAllPlayers();
 
             chromaKeyVideoRenderer.setVideoPlayer(null);
+            if (mCfg == null) {
+                Log.e("ImageTrackerRenderer", "model is NULL");
+                return;
+            }
 
             if (mCfg.type == 17){
                 String assetPath = mCfg.path.replace("file:///android_asset/", "");
@@ -350,7 +355,7 @@ class ImageTrackerRenderer implements Renderer {
                     float[] latestPose = imageTrackerActivity.smoothedPose;
 
                     if (latestPose == null) return;
-                    chromaKeyVideoRenderer.setTransform(pose);
+                    chromaKeyVideoRenderer.setTransform(rawPose);
 
                     float vx = vcfg.translate.x * width;
                     float vy = vcfg.translate.y * height;
@@ -403,7 +408,7 @@ class ImageTrackerRenderer implements Renderer {
                             videoRenderer.getVideoPlayer().start();
                         }
                         videoRenderer.setProjectionMatrix(projectionMatrix);
-                        videoRenderer.setTransform(pose);
+                        videoRenderer.setTransform(rawPose);
                         videoRenderer.setTranslate(0.0f, 0.0f, 0.0f);
                         videoRenderer.setScale(width, height, 1.0f);
                         videoRenderer.draw();
