@@ -14,5 +14,6 @@ public class ModelConfig {
         public boolean autoPlay;
         public boolean loop;
         public int animationIndex;
+        public int duration;
     }
 }
