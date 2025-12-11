@@ -70,7 +70,12 @@ class ImageTrackerRenderer implements Renderer {
     private Map<String, LabelConfig> activeLabels = null;
     private Map<String, VideoPlayer> activePlayers = null;
     private VideoPlayer legacyPlayer = null;
-     private float[] rawPose ;
+    private float[] rawPose;
+    private float[] projectionMatrix;
+    private float width;
+    private float height;
+    private boolean ispauseChromaVideoRenderer = false;
+    private boolean isPauseVideoRenderer = false;
 
     ImageTrackerRenderer(Activity activity, ImageTrackerActivity imageTrackerActivity, Map<String, TrackerConfig> configs) {
         this.activity = activity;
@@ -115,15 +120,12 @@ class ImageTrackerRenderer implements Renderer {
     @Override
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-
         Bitmap bitmap = MaxstARUtil.getBitmapFromAsset("MaxstAR_Cube.png", activity.getAssets());
         texturedCubeRenderer = new TexturedCubeRenderer(activity);
-   //     texturedCubeRenderer.setTextureBitmap(bitmap);
         coloredCubeRenderer = new ColoredCubeRenderer();
         chromaKeyVideoRenderer = new ChromaKeyVideoRenderer();
         videoRenderer = new VideoRenderer();
 
-        // ADDED: create per-tracker VideoPlayer instances once (avoid openVideo per frame)
         for (Map.Entry<String, Map<String, VideoConfig>> trackerEntry : videosByTracker.entrySet()) {
             String trackerName = trackerEntry.getKey();
             Map<String, VideoConfig> vids = trackerEntry.getValue();
@@ -162,13 +164,19 @@ class ImageTrackerRenderer implements Renderer {
     @Override
     public void onDrawFrame(GL10 unused) {
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
+
+        if (activeTracker == null) {
+            chromaKeyVideoRenderer.setVideoPlayer(null);
+            videoRenderer.setVideoPlayer(null);
+        }
+
         GLES20.glViewport(0, 0, surfaceWidth, surfaceHeight);
 
         TrackingState state = TrackerManager.getInstance().updateTrackingState();
         TrackingResult trackingResult = state.getTrackingResult();
         TrackedImage image = state.getImage();
 
-        float[] projectionMatrix = CameraDevice.getInstance().getProjectionMatrix();
+        projectionMatrix = CameraDevice.getInstance().getProjectionMatrix();
         System.arraycopy(projectionMatrix, 0, latestProjectionMatrix, 0, 16);
         hasLatestProjection = true;
         float[] backgroundPlaneInfo = CameraDevice.getInstance().getBackgroundPlaneInfo();
@@ -182,8 +190,8 @@ class ImageTrackerRenderer implements Renderer {
 
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
         float[] pose = null;
-        float width = 0;
-        float height = 0;
+        width = 0;
+        height = 0;
         boolean targetDetected = false;
         int count = trackingResult.getCount();
         Log.d("MAXST_COUNT", "Detected targets = " + count);
@@ -200,6 +208,7 @@ class ImageTrackerRenderer implements Renderer {
 
             if (trackerNames.contains(name)) {
                 if (detectedTrackerThisFrame == null) {
+
                     detectedTrackerThisFrame = name;
                     targetDetected = true;
                     width = trackable.getWidth();
@@ -215,13 +224,29 @@ class ImageTrackerRenderer implements Renderer {
                 coloredCubeRenderer.draw();
             }
         }
-
         if (!targetDetected) {
             clearActiveTracker();
         }
 
         if (detectedTrackerThisFrame != null) {
             if (!detectedTrackerThisFrame.equals(previousTracker)) {
+                imageTrackerActivity.activeLabel = null;
+                previousActiveLabel = null;
+                chromaKeyVideoRenderer.setVideoPlayer(null);
+                videoRenderer.setVideoPlayer(null);
+                chromaKeyVideoRenderer.resetSize();
+                videoRenderer.resetSize();
+                chromaKeyVideoRenderer.updateVideo(true);
+                videoRenderer.updateVideo(true);
+
+                ispauseChromaVideoRenderer = false;
+                isPauseVideoRenderer = false;
+
+                activeVideos = null;
+                activePlayers = null;
+                activeModels = null;
+                activeLabels = null;
+
                 setActiveTracker(detectedTrackerThisFrame);
             }
             previousTracker = detectedTrackerThisFrame;
@@ -275,22 +300,19 @@ class ImageTrackerRenderer implements Renderer {
             pauseAllPlayers();
 
             chromaKeyVideoRenderer.setVideoPlayer(null);
+            videoRenderer.setVideoPlayer(null);
+
+
             if (mCfg == null) {
                 Log.e("ImageTrackerRenderer", "model is NULL");
                 return;
             }
 
-            if (mCfg.type == 17){
+            if (mCfg.type == 17) {
                 String assetPath = mCfg.path.replace("file:///android_asset/", "");
-                Bitmap bmp = MaxstARUtil.getBitmapFromAsset(assetPath, activity.getAssets());
-                texturedCubeRenderer.setTextureBitmap(bmp);
-                texturedCubeRenderer.setProjectionMatrix(projectionMatrix);
-                texturedCubeRenderer.setTransform(pose);
-                texturedCubeRenderer.setTranslate(0, 0, -0.05f);
-                texturedCubeRenderer.setScale(width, height, 0.1f);
-                texturedCubeRenderer.draw();
+                showCubeRender(assetPath);
 
-            }else if (mCfg.type == 23){
+            } else if (mCfg.type == 23) {
                 imageTrackerActivity.updateGlacierPose(
                         pose, width, height, true, cfg.onClickAction.targetModelId, modelSize);
             }
@@ -298,6 +320,19 @@ class ImageTrackerRenderer implements Renderer {
             previousActiveLabel = currentLabel;
             imageTrackerActivity.enableModel();
             return;
+        } else if (activeModels != null && activeLabels.isEmpty()) {
+            for (ModelConfig modelConfig : activeModels.values()) {
+                if (modelConfig.type == 17) {
+                    String assetPath = modelConfig.path.replace("file:///android_asset/", "");
+                    showCubeRender(assetPath);
+                } else if (modelConfig.type == 23) {
+                    imageTrackerActivity.updateGlacierPose(
+                            pose, width, height, true, modelConfig.id, modelSize);
+                    imageTrackerActivity.enableModel();
+                } else {
+                    Log.d("type", "different type ..");
+                }
+            }
         } else {
             imageTrackerActivity.disableModel();
         }
@@ -314,13 +349,50 @@ class ImageTrackerRenderer implements Renderer {
 
             } else {
                 labelChanged = false;
-                pauseAllPlayingPlayers(); // 🔄 UPDATED
+                pauseAllPlayingPlayers();
                 previousActiveLabel = currentLabel;
             }
         }
+        if (labelChanged) {
+            chromaKeyVideoRenderer.updateVideo(true);
+            videoRenderer.updateVideo(true);
+            ispauseChromaVideoRenderer = false;
+            isPauseVideoRenderer = false;
+        }
+        if (targetDetected && activeLabels.isEmpty()) {
+            if (activeVideos != null && !activeVideos.isEmpty()) {
+                for (VideoConfig videoConfig : activeVideos.values()) {
 
-        if (imageTrackerActivity.activeLabel != null && targetDetected) {
 
+                    if (videoConfig.type == 20) {
+                        VideoPlayer vp = (activePlayers == null) ? null : activePlayers.get(videoConfig.id);
+
+                        if (vp == null) {
+                            try {
+                                String assetPath = videoConfig.path.replace("file:///android_asset/", "");
+                                legacyPlayer.openVideo(assetPath);
+                            } catch (Exception ignored) {
+                            }
+                            vp = legacyPlayer;
+                        }
+                        playVideoRenderer(vp);
+
+                    }
+                    if (videoConfig.type == 8) {
+                        VideoPlayer vp = (activePlayers == null) ? null : activePlayers.get(videoConfig.id);
+                        if (vp == null) {
+                            try {
+                                String assetPath = videoConfig.path.replace("file:///android_asset/", "");
+                                legacyPlayer.openVideo(assetPath);
+                            } catch (Exception ignored) {
+                            }
+                            vp = legacyPlayer;
+                        }
+                        playChromaVideoRenderer(vp);
+                    }
+                }
+            }
+        } else if (imageTrackerActivity.activeLabel != null && targetDetected) {
             previousActiveLabel = currentLabel;
 
             LabelConfig lbl = (activeLabels == null) ? null : activeLabels.get(imageTrackerActivity.activeLabel);
@@ -341,128 +413,43 @@ class ImageTrackerRenderer implements Renderer {
                             }
                         }
                     }
-
                     if (labelChanged) {
                         chromaKeyVideoRenderer.resetSize();
-                        chromaKeyVideoRenderer.setShouldUpdateVideo(true);
+                        videoRenderer.resetSize();
+                        chromaKeyVideoRenderer.updateVideo(true);
                     }
-
-                    // 2) Attach player to shared renderer
-                    chromaKeyVideoRenderer.setVideoPlayer(vpl);
-
-                    // 3) Set transform
-                    chromaKeyVideoRenderer.setProjectionMatrix(projectionMatrix);
-                    float[] latestPose = imageTrackerActivity.smoothedPose;
-
-                    if (latestPose == null) return;
-                    chromaKeyVideoRenderer.setTransform(rawPose);
-
-                    float vx = vcfg.translate.x * width;
-                    float vy = vcfg.translate.y * height;
-                    float vz = vcfg.translate.z;
-
-                    // NOTE: previous code used setTranslate(0,0,0) — keep that if desired
-                    chromaKeyVideoRenderer.setTranslate(0.0f, 0.0f, 0.0f);
-
-                    // 4) Scale from config
-                    chromaKeyVideoRenderer.setScale(width, height, 1.0f);
-
-                    // 5) Start the selected video
-                    if (vpl.getState() == VideoPlayer.STATE_READY ||
-                            vpl.getState() == VideoPlayer.STATE_PAUSE) {
-
-                        vpl.pause();
-                        vpl.setPosition(0);
-                        vpl.start();
+                    if (vcfg.type == 8) {
+                        videoRenderer.setVideoPlayer(null);
+                        playChromaVideoRenderer(vpl);
+                    } else if (vcfg.type == 20) {
+                        chromaKeyVideoRenderer.setVideoPlayer(null);
+                        playVideoRenderer(vpl);
+                    } else {
+                        Log.d("video type ", "invalid ");
                     }
-                    chromaKeyVideoRenderer.draw();
                 }
             }
         } else {
             imageTrackerActivity.activeLabel = null;
             pauseAllPlayingPlayers();
         }
-
-        // If there are no labels for this tracker, handle "dynamic" video/model types
-        if (activeLabels != null && !activeLabels.isEmpty()) {
-
-        } else if (targetDetected ) {
-            if (activeVideos != null && !activeVideos.isEmpty()){
-                for (VideoConfig videoConfig : activeVideos.values()) {
-
-                    if (videoConfig.type == 20) {
-                        VideoPlayer vp = (activePlayers == null) ? null : activePlayers.get(videoConfig.id);
-                        if (vp == null) {
-                            try {
-                                String assetPath = videoConfig.path.replace("file:///android_asset/", "");
-                                legacyPlayer.openVideo(assetPath);
-                            } catch (Exception ignored) {
-                            }
-                            vp = legacyPlayer;
-                        }
-
-                        videoRenderer.setVideoPlayer(vp);
-
-                        if (videoRenderer.getVideoPlayer().getState() == VideoPlayer.STATE_READY ||
-                                videoRenderer.getVideoPlayer().getState() == VideoPlayer.STATE_PAUSE) {
-                            videoRenderer.getVideoPlayer().start();
-                        }
-                        videoRenderer.setProjectionMatrix(projectionMatrix);
-                        videoRenderer.setTransform(rawPose);
-                        videoRenderer.setTranslate(0.0f, 0.0f, 0.0f);
-                        videoRenderer.setScale(width, height, 1.0f);
-                        videoRenderer.draw();
-                    }
-                    if (videoConfig.type == 8) {
-                        VideoPlayer vp = (activePlayers == null) ? null : activePlayers.get(videoConfig.id);
-                        if (vp == null) {
-                            try {
-                                String assetPath = videoConfig.path.replace("file:///android_asset/", "");
-                                legacyPlayer.openVideo(assetPath);
-                            } catch (Exception ignored) {
-                            }
-                            vp = legacyPlayer;
-                        }
-
-                        chromaKeyVideoRenderer.setVideoPlayer(vp);
-
-                        if (chromaKeyVideoRenderer.getVideoPlayer().getState() == VideoPlayer.STATE_READY ||
-                                chromaKeyVideoRenderer.getVideoPlayer().getState() == VideoPlayer.STATE_PAUSE) {
-                            chromaKeyVideoRenderer.getVideoPlayer().start();
-                        }
-                        chromaKeyVideoRenderer.setProjectionMatrix(projectionMatrix);
-                        chromaKeyVideoRenderer.setTransform(pose);
-                        chromaKeyVideoRenderer.setTranslate(0.0f, 0.0f, 0.0f);
-                        chromaKeyVideoRenderer.setScale(width, height, 1.0f);
-                        chromaKeyVideoRenderer.draw();
-                    }
-                }
-            }
-
-            if (activeModels != null) {
-                for (ModelConfig modelConfig : activeModels.values()) {
-                    if (modelConfig.type == 17) {
-                        String assetPath = modelConfig.path.replace("file:///android_asset/", "");
-                        Bitmap bitmap = MaxstARUtil.getBitmapFromAsset(assetPath, activity.getAssets());
-                        texturedCubeRenderer.setTextureBitmap(bitmap);
-                        texturedCubeRenderer.setProjectionMatrix(projectionMatrix);
-                        texturedCubeRenderer.setTransform(pose);
-                        texturedCubeRenderer.setTranslate(0, 0, -0.05f);
-                        texturedCubeRenderer.setScale(width, height, 0.1f);
-                        texturedCubeRenderer.draw();
-                    } else if (modelConfig.type == 23) {
-                        imageTrackerActivity.updateGlacierPose(
-                                pose, width, height, true, modelConfig.id, modelSize);
-                    } else {
-                        Log.d("type", "different type ..");
-                    }
-                }
-            }
-        } else {
-            pauseVideoPlayer();
-        }
     }
+
+    private void showCubeRender(String assetPath) {
+        Bitmap bitmap = MaxstARUtil.getBitmapFromAsset(assetPath, activity.getAssets());
+        texturedCubeRenderer.setTextureBitmap(bitmap);
+        texturedCubeRenderer.setProjectionMatrix(projectionMatrix);
+        texturedCubeRenderer.setTransform(rawPose);
+        texturedCubeRenderer.setTranslate(0, 0, -0.05f);
+        texturedCubeRenderer.setScale(width, height, 0.1f);
+        texturedCubeRenderer.draw();
+    }
+
     private void setActiveTracker(String name) {
+
+        chromaKeyVideoRenderer.setVideoPlayer(null);
+        videoRenderer.setVideoPlayer(null);
+
         if (activePlayers != null && !name.equals(activeTracker)) {
             for (VideoPlayer p : activePlayers.values()) {
                 try {
@@ -496,7 +483,8 @@ class ImageTrackerRenderer implements Renderer {
             for (LabelConfig lbl : activeLabels.values()) {
                 try {
                     imageTrackerActivity.hideLabel(lbl.text);
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
         }
         imageTrackerActivity.activeLabel = null;
@@ -507,7 +495,8 @@ class ImageTrackerRenderer implements Renderer {
                 try {
                     if (p.getState() == VideoPlayer.STATE_PLAYING) p.pause();
                     p.setPosition(0);
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
         }
 
@@ -559,6 +548,7 @@ class ImageTrackerRenderer implements Renderer {
             }
         }
     }
+
     private void pauseAllPlayers() {
         for (Map<String, VideoPlayer> pm : playersByTracker.values()) {
             for (VideoPlayer p : pm.values()) {
@@ -602,19 +592,25 @@ class ImageTrackerRenderer implements Renderer {
         return false;
     }
 
-    public boolean hitTestVideoTap(float touchX, float touchY, int screenWidth, int screenHeight) {
+    public boolean tapVideo(float touchX, float touchY, int screenWidth, int screenHeight) {
         if (!hasLatestProjection) return false;
+        VideoPlayer activePlayer = null;
+        float[] modelMat = null;
 
-        ChromaKeyVideoRenderer r = chromaKeyVideoRenderer;
-        if (r == null) return false;
+        if (chromaKeyVideoRenderer != null &&
+                chromaKeyVideoRenderer.getVideoPlayer() != null) {
+            activePlayer = chromaKeyVideoRenderer.getVideoPlayer();
+            modelMat = chromaKeyVideoRenderer.getCurrentModelMatrix();
 
-        VideoPlayer v = r.getVideoPlayer();
-        if (v == null) return false;
-
-        // get model matrix for current video quad
-        float[] modelMat = r.getCurrentModelMatrix(); // 4x4
+        } else if (videoRenderer != null &&
+                videoRenderer.getVideoPlayer() != null) {
+            activePlayer = videoRenderer.getVideoPlayer();
+            modelMat = videoRenderer.getCurrentModelMatrix();
+        }
+        if (activePlayer == null || modelMat == null) {
+            return false;
+        }
         if (modelMat == null) return false;
-
         // compute MVP = projection * model
         float[] mvp = new float[16];
         Matrix.multiplyMM(mvp, 0, latestProjectionMatrix, 0, modelMat, 0);
@@ -644,12 +640,18 @@ class ImageTrackerRenderer implements Renderer {
             screenPts[i][0] = sx;
             screenPts[i][1] = sy;
         }
-
         // Point-in-quad test: split into two triangles (0,1,2) and (0,2,3)
         if (pointInTriangle(touchX, touchY, screenPts[0], screenPts[1], screenPts[2]) ||
                 pointInTriangle(touchX, touchY, screenPts[0], screenPts[2], screenPts[3])) {
-            // It's a hit — toggle play/pause
-            togglePlayPauseAttachedVideo();
+            if (chromaKeyVideoRenderer != null &&
+                    chromaKeyVideoRenderer.getVideoPlayer() != null) {
+                tapChromaKeyVideoRenderer();
+
+            } else if (videoRenderer != null &&
+                    videoRenderer.getVideoPlayer() != null) {
+                tapVideoRenderer();
+
+            }
             return true;
         }
         return false;
@@ -678,7 +680,7 @@ class ImageTrackerRenderer implements Renderer {
         return (u >= 0) && (v >= 0) && (u + v <= 1);
     }
 
-    private void togglePlayPauseAttachedVideo() {
+    public void tapChromaKeyVideoRenderer() {
         if (chromaKeyVideoRenderer == null) return;
 
         VideoPlayer vp = chromaKeyVideoRenderer.getVideoPlayer();
@@ -689,51 +691,116 @@ class ImageTrackerRenderer implements Renderer {
         int dur = vp.getDuration();
         if (pos == dur) {
             vp.setPosition(0);
-            chromaKeyVideoRenderer.setShouldUpdateVideo(true);
+            chromaKeyVideoRenderer.updateVideo(true);
             vp.start();
             return;
         }
 
         if (state == VideoPlayer.STATE_PLAYING) {
             vp.pause();
-            chromaKeyVideoRenderer.setShouldUpdateVideo(false);
+            ispauseChromaVideoRenderer = true;
+            chromaKeyVideoRenderer.updateVideo(false);
             return;
         }
 
         if (state == VideoPlayer.STATE_PAUSE) {
-            chromaKeyVideoRenderer.setShouldUpdateVideo(true);
+            chromaKeyVideoRenderer.updateVideo(true);
             vp.start();
+            ispauseChromaVideoRenderer = false;
             return;
         }
 
         if (state == VideoPlayer.STATE_READY) {
             vp.setPosition(0);
-            chromaKeyVideoRenderer.setShouldUpdateVideo(true);
+            chromaKeyVideoRenderer.updateVideo(true);
             vp.start();
             return;
         }
     }
 
-    private void pauseVideoPlayer() {
-        if (videoRenderer != null) {
-            VideoPlayer vp = videoRenderer.getVideoPlayer();
+    public void tapVideoRenderer() {
+        if (videoRenderer == null) return;
 
-            if (vp != null) {
-                int state = vp.getState();
-                if (state == VideoPlayer.STATE_PLAYING) {
-                    vp.pause();
-                }
-            }
+        VideoPlayer vp = videoRenderer.getVideoPlayer();
+        if (vp == null) return;
+
+        int state = vp.getState();
+        int pos = vp.getCurrentPosition();
+        int dur = vp.getDuration();
+        if (pos == dur) {
+            vp.setPosition(0);
+            videoRenderer.updateVideo(true);
+            vp.start();
+            return;
         }
-        if (chromaKeyVideoRenderer != null) {
-            VideoPlayer vp2 = chromaKeyVideoRenderer.getVideoPlayer();
 
-            if (vp2 != null) {
-                int state2 = vp2.getState();
-                if (state2 == VideoPlayer.STATE_PLAYING) {
-                    vp2.pause();
-                }
-            }
+        if (state == VideoPlayer.STATE_PLAYING) {
+            vp.pause();
+            isPauseVideoRenderer = true;
+            videoRenderer.updateVideo(false);
+            return;
+        }
+
+        if (state == VideoPlayer.STATE_PAUSE) {
+            videoRenderer.updateVideo(true);
+            vp.start();
+            isPauseVideoRenderer = false;
+            return;
+        }
+
+        if (state == VideoPlayer.STATE_READY) {
+            vp.setPosition(0);
+            videoRenderer.updateVideo(true);
+            vp.start();
+            return;
         }
     }
+
+    private void playChromaVideoRenderer(VideoPlayer videoPlayer) {
+        // 2) Attach player to shared renderer
+        chromaKeyVideoRenderer.setVideoPlayer(videoPlayer);
+
+        // 3) Set transform
+        chromaKeyVideoRenderer.setProjectionMatrix(projectionMatrix);
+        float[] latestPose = imageTrackerActivity.smoothedPose;
+
+        if (latestPose == null) return;
+        chromaKeyVideoRenderer.setTransform(rawPose);
+
+        chromaKeyVideoRenderer.setTranslate(0.0f, 0.0f, 0.0f);
+
+        // 4) Scale from config
+        chromaKeyVideoRenderer.setScale(width, height, 1.0f);
+
+        // 5) Start the selected video
+        if (videoPlayer.getState() == VideoPlayer.STATE_READY ||
+                videoPlayer.getState() == VideoPlayer.STATE_PAUSE) {
+            if (!ispauseChromaVideoRenderer) {
+                videoPlayer.start();
+            } else {
+                videoPlayer.pause();
+            }
+        }
+        chromaKeyVideoRenderer.draw();
+    }
+
+    private void playVideoRenderer(VideoPlayer videoPlayer) {
+        videoRenderer.setVideoPlayer(videoPlayer);
+        videoRenderer.setProjectionMatrix(projectionMatrix);
+        videoRenderer.setTransform(rawPose);
+        videoRenderer.setTranslate(0.0f, 0.0f, 0.0f);
+        videoRenderer.setScale(width, height, 1.0f);
+
+        if (videoPlayer.getState() == VideoPlayer.STATE_READY ||
+                videoPlayer.getState() == VideoPlayer.STATE_PAUSE) {
+
+            if (!isPauseVideoRenderer) {
+                videoPlayer.start();
+            } else {
+                videoPlayer.pause();
+            }
+        }
+        videoRenderer.draw();
+    }
+
 }

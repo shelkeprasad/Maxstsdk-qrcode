@@ -201,6 +201,206 @@
       }
     },
     {
+      "id": "Ahu",
+      "name": "Ahu",
+      "mapPath": "ImageTarget/Ahu.2dmap",
+      "assets": {
+        "models": [
+          {
+            "id": "Motor View",
+            "name": "Motor View",
+            "path": "file:///android_asset/pneumatic_engine.glb",
+            "initialEnabled": true,
+            "size": 0.01,
+            "type": 23,
+            "animation": {
+              "autoPlay": true,
+              "loop": true,
+              "animationIndex": 1,
+              "duration": 5000
+            }
+          }
+        ],
+        "videos": [
+          {
+            "id": "Cooling Coil",
+            "name": "Cooling Coil",
+            "path": "file:///android_asset/AHU1.mp4",
+            "initialEnabled": true,
+            "type": 8,
+            "scale": {
+              "width": 1.8,
+              "height": 0.5
+            },
+            "translate": {
+              "x": 1.2,
+              "y": 0.05,
+              "z": 0
+            }
+          },
+          {
+            "id": "AHU -Work",
+            "name": "AHU -Work",
+            "path": "file:///android_asset/AHU2.mp4",
+            "initialEnabled": false,
+            "type": 20,
+            "scale": {
+              "width": 1.8,
+              "height": 0.5
+            },
+            "translate": {
+              "x": -0.9,
+              "y": 0.05,
+              "z": 0
+            }
+          },
+          {
+            "id": "Components",
+            "name": "Components",
+            "path": "file:///android_asset/AHU3.mp4",
+            "initialEnabled": true,
+            "type": 8,
+            "scale": {
+              "width": 1.8,
+              "height": 0.5
+            },
+            "translate": {
+              "x": -0.9,
+              "y": 0.05,
+              "z": 0
+            }
+          },
+          {
+            "id": "AHU -Intro",
+            "name": "AHU -Intro",
+            "path": "file:///android_asset/AHU4.mp4",
+            "initialEnabled": true,
+            "type": 8,
+            "scale": {
+              "width": 1.8,
+              "height": 0.5
+            },
+            "translate": {
+              "x": 1.2,
+              "y": 0.05,
+              "z": 0
+            }
+          }
+        ],
+        "labels": [
+          {
+            "id": "l_Motor View",
+            "text": "Motor View",
+            "type": 24,
+            "anchor": {
+              "xRel": -0.5,
+              "yRel": 0.5,
+              "zRel": 0
+            },
+            "offsetPx": {
+              "x": 450,
+              "y": -500
+            },
+            "onClickAction": {
+              "type": "showModel",
+              "targetModelId": "Motor View",
+              "enableModel": true
+            }
+          },
+          {
+            "type": 24,
+            "id": "l_AHU -Intro",
+            "text": "AHU -Intro",
+            "anchor": {
+              "xRel": -0.5,
+              "yRel": 0.5,
+              "zRel": 0
+            },
+            "offsetPx": {
+              "x": 50,
+              "y": 100
+            },
+            "onClickAction": {
+              "type": "playVideo",
+              "targetVideoId": "AHU -Intro"
+            }
+          },
+          {
+            "id": "l_AHU -Work",
+            "text": "AHU Work",
+            "type": 24,
+            "anchor": {
+              "xRel": -0.5,
+              "yRel": 0.5,
+              "zRel": 0
+            },
+            "offsetPx": {
+              "x": 250,
+              "y": 100
+            },
+            "onClickAction": {
+              "type": "playVideo",
+              "targetVideoId": "AHU -Work"
+            }
+          },
+          {
+            "type": 24,
+            "id": "l_Components",
+            "text": "Components",
+            "anchor": {
+              "xRel": -0.5,
+              "yRel": 0.5,
+              "zRel": 0
+            },
+            "offsetPx": {
+              "x": 450,
+              "y": 100
+            },
+            "onClickAction": {
+              "type": "playVideo",
+              "targetVideoId": "Components"
+            }
+          },
+          {
+            "id": "l_Cooling Coil",
+            "text": "Cooling Coil",
+            "type": 24,
+            "anchor": {
+              "xRel": -0.5,
+              "yRel": 0.5,
+              "zRel": 0
+            },
+            "offsetPx": {
+              "x": 750,
+              "y": 100
+            },
+            "onClickAction": {
+              "type": "playVideo",
+              "targetVideoId": "Cooling Coil"
+            }
+          },
+          {
+            "id": "l_Close",
+            "text": "Close",
+            "type": 24,
+            "anchor": {
+              "xRel": -0.5,
+              "yRel": 0.5,
+              "zRel": 0
+            },
+            "offsetPx": {
+              "x": 750,
+              "y": 200
+            },
+            "onClickAction": {
+              "type": "hideAll",
+              "enableModel": false
+            }
+          }
+        ]
+      }
+    },
+    {
       "id": "Glacier",
       "name": "Glacier",
       "mapPath": "ImageTarget/Glacier.2dmap",

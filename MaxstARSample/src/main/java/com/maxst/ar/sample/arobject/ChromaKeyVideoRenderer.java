@@ -120,9 +120,10 @@ public class ChromaKeyVideoRenderer extends BaseRenderer {
             return;
         }
 
-        if (videoPlayer.getState() != VideoPlayer.STATE_PLAYING ) {
-            return;
-        }
+//        if (videoPlayer.getState() != VideoPlayer.STATE_PLAYING ) {
+//            return;
+//        }
+
 
         if (videoPlayer != null) {
             if (shouldUpdateVideo) {
@@ -197,7 +198,7 @@ public class ChromaKeyVideoRenderer extends BaseRenderer {
 
         return result;
     }
-    public void setShouldUpdateVideo(boolean shouldUpdate) {
+    public void updateVideo(boolean shouldUpdate) {
         this.shouldUpdateVideo = shouldUpdate;
     }
 }

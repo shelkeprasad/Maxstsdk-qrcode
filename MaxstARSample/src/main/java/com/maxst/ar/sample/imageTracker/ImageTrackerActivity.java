@@ -143,8 +143,8 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
             if (ev.getAction() == MotionEvent.ACTION_DOWN) {
                 float x = ev.getX();
                 float y = ev.getY();
-                boolean handled = imageTargetRenderer.hitTestVideoTap(x, y, surfaceWidth, surfaceHeight);
-                return handled;
+                boolean handled = imageTargetRenderer.tapVideo(x, y, surfaceWidth, surfaceHeight);
+                return handled  ;
             }
             return false;
         });

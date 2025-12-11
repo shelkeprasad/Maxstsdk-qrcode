@@ -57,6 +57,8 @@ public class VideoRenderer extends BaseRenderer {
 
     private VideoPlayer videoPlayer;
     private boolean videoSizeAcquired = false;
+    private boolean shouldUpdateVideo = true;
+
 
     public VideoRenderer() {
         super();
@@ -116,11 +118,19 @@ public class VideoRenderer extends BaseRenderer {
             return;
         }
 
-        if (videoPlayer.getState() != VideoPlayer.STATE_PLAYING) {
-            return;
-        }
+//        if (videoPlayer.getState() != VideoPlayer.STATE_PLAYING) {
+//            return;
+//        }
 
-        videoPlayer.update();
+     //   videoPlayer.update();
+
+        if (videoPlayer != null) {
+            if (shouldUpdateVideo) {
+                videoPlayer.update();
+            } else {
+                videoPlayer.pause();
+            }
+        }
 
         if (!videoPlayer.isTextureDrawable()) {
             return;
@@ -164,4 +174,27 @@ public class VideoRenderer extends BaseRenderer {
     public VideoPlayer getVideoPlayer() {
         return this.videoPlayer;
     }
+    public void resetSize() {
+        videoSizeAcquired = false;
+        if (textureNames != null && textureNames[0] != 0) {
+            GLES20.glDeleteTextures(1, textureNames, 0);
+            textureNames[0] = 0;
+        }
+    }
+    public void updateVideo(boolean shouldUpdate) {
+        this.shouldUpdateVideo = shouldUpdate;
+    }
+    public float[] getCurrentModelMatrix() {
+        float[] tmp = new float[16];
+        float[] result = new float[16];
+
+        Matrix.setIdentityM(tmp, 0);
+        Matrix.multiplyMM(tmp, 0, translation, 0, rotation, 0);   // tmp = translation * rotation
+        Matrix.multiplyMM(tmp, 0, tmp, 0, scale, 0);              // tmp = (translation*rotation) * scale
+        Matrix.setIdentityM(result, 0);
+        Matrix.multiplyMM(result, 0, transform, 0, tmp, 0);       // result = transform * tmp
+
+        return result;
+    }
+
 }
