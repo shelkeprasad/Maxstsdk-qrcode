@@ -538,6 +538,9 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         float sx = (nx * 0.5f + 0.5f) * surfaceWidth;
         float sy = (1f - (ny * 0.5f + 0.5f)) * surfaceHeight;
 
+        sx = Math.max(0, Math.min(sx, surfaceWidth - 1));
+        sy = Math.max(0, Math.min(sy, surfaceHeight - 1));
+
         return new float[]{sx, sy};
     }
 

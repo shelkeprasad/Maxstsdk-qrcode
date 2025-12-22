@@ -24,6 +24,7 @@ import com.maxst.ar.sample.ModelConfig;
 import com.maxst.ar.sample.TrackerConfig;
 import com.maxst.ar.sample.VideoConfig;
 import com.maxst.ar.sample.arobject.BackgroundRenderHelper;
+import com.maxst.ar.sample.arobject.BoundingBoxRenderer;
 import com.maxst.ar.sample.arobject.ChromaKeyVideoRenderer;
 import com.maxst.ar.sample.arobject.ColoredCubeRenderer;
 import com.maxst.ar.sample.arobject.TexturedCubeRenderer;
@@ -43,6 +44,7 @@ class ImageTrackerRenderer implements Renderer {
 
     public static final String TAG = ImageTrackerRenderer.class.getSimpleName();
     private TexturedCubeRenderer texturedCubeRenderer;
+    private BoundingBoxRenderer boundingBoxRenderer;
     private ColoredCubeRenderer coloredCubeRenderer;
     private ChromaKeyVideoRenderer chromaKeyVideoRenderer;
     private int surfaceWidth;
@@ -122,6 +124,7 @@ class ImageTrackerRenderer implements Renderer {
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         Bitmap bitmap = MaxstARUtil.getBitmapFromAsset("MaxstAR_Cube.png", activity.getAssets());
         texturedCubeRenderer = new TexturedCubeRenderer(activity);
+        boundingBoxRenderer = new BoundingBoxRenderer();
         coloredCubeRenderer = new ColoredCubeRenderer();
         chromaKeyVideoRenderer = new ChromaKeyVideoRenderer();
         videoRenderer = new VideoRenderer();
@@ -264,18 +267,8 @@ class ImageTrackerRenderer implements Renderer {
                 float modelX = lbl.anchor.xRel * width;
                 float modelY = lbl.anchor.yRel * height;
                 float modelZ = lbl.anchor.zRel;
+                imageTrackerActivity.updateLabelAtModelPoint( lbl.text, pose, 0, 0, 0, 0,0, lbl.offsetPx.x,   lbl.offsetPx.y);
 
-                imageTrackerActivity.updateLabelAtModelPoint(
-                        lbl.text,
-                        pose,
-                        width,
-                        height,
-                        modelX,
-                        modelY,
-                        modelZ,
-                        lbl.offsetPx.x,
-                        lbl.offsetPx.y
-                );
             }
         } else {
             if (activeLabels != null) {

@@ -43,7 +43,7 @@
             "name": "Air Duct",
             "path": "file:///android_asset/HVAC2.mp4",
             "initialEnabled": false,
-            "type": 8,
+            "type": 20,
             "scale": {
               "width": 1.8,
               "height": 0.5
@@ -117,8 +117,8 @@
               "zRel": 0
             },
             "offsetPx": {
-              "x": 50,
-              "y": 100
+              "x": 20,
+              "y": 270
             },
             "onClickAction": {
               "type": "playVideo",
@@ -136,7 +136,7 @@
             },
             "offsetPx": {
               "x": 250,
-              "y": 100
+              "y": 270
             },
             "onClickAction": {
               "type": "playVideo",
@@ -153,8 +153,8 @@
               "zRel": 0
             },
             "offsetPx": {
-              "x": 450,
-              "y": 100
+              "x": 550,
+              "y": 270
             },
             "onClickAction": {
               "type": "playVideo",
@@ -171,8 +171,8 @@
               "zRel": 0
             },
             "offsetPx": {
-              "x": 750,
-              "y": 100
+              "x": 250,
+              "y": 420
             },
             "onClickAction": {
               "type": "playVideo",
@@ -189,8 +189,8 @@
               "zRel": 0
             },
             "offsetPx": {
-              "x": 750,
-              "y": 200
+              "x": 550,
+              "y": 470
             },
             "onClickAction": {
               "type": "hideAll",
