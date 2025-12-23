@@ -4,3 +4,10 @@
 /libs/libVideoPlayer.so
 /libs/VideoPlayer.jar
 /libs/MaxstAR.aar
+local.properties
+.gradle/
+.idea/
+/MaxstARSample/local.properties
+/MaxstARSample/build/
+/MaxstARSample/.gradle
+/MaxstARSample/.idea
