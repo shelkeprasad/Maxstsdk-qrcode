@@ -8,7 +8,9 @@ import android.animation.ObjectAnimator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.res.Configuration;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
@@ -16,19 +18,19 @@ import android.net.Uri;
 import android.opengl.GLSurfaceView;
 import android.os.Build;
 import android.os.Bundle;
-
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.util.Log;
-import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.google.ar.sceneform.Node;
 import com.google.ar.sceneform.Scene;
@@ -56,6 +58,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 
 public class ImageTrackerActivity extends AppCompatActivity implements View.OnClickListener {
@@ -92,7 +95,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         findViewById(R.id.multi_tracking).setOnClickListener(this);
 
         imageTargetRenderer = new ImageTrackerRenderer(this, this, trackerConfigs);
-        glSurfaceView = (GLSurfaceView) findViewById(R.id.gl_surface_view);
+        glSurfaceView = findViewById(R.id.gl_surface_view);
         glSurfaceView.setEGLContextClientVersion(2);
         MaxstAR.init(this.getApplicationContext(), getResources().getString(R.string.app_key));
 
@@ -115,7 +118,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
                 TrackerManager.getInstance().addTrackerData(cfg.mapPath, true);
             }
         }
-        TrackerManager.getInstance().loadTrackerData();
+//        TrackerManager.getInstance().loadTrackerData();
 
         for (TrackerConfig cfg : trackerConfigs.values()) {
             if (cfg.assets != null && cfg.assets.models != null) {
@@ -125,6 +128,8 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
             }
         }
         initSceneformOverlay();
+
+        TrackerManager.getInstance().addTrackerData("ImageTarget/Lego.2dmap", true);
 
 //		TrackerManager.getInstance().addTrackerData("{\"image\":\"add_image\",\"image_path\":\"ImageTarget/Blocks.png\",\"image_width\":0.26,\"inclusion\":[{\"x\":50, \"y\":100, \"width\":400, \"height\":400}, {\"x\":400, \"y\":80, \"width\":400, \"height\":400}], \"exclusion\":[{\"x\":200, \"y\":200, \"width\":150, \"height\":150}]}", true);
         //TrackerManager.getInstance().addTrackerData("{\"image\":\"add_image\",\"image_path\":\"ImageTarget/Blocks.png\",\"image_width\":0.26}", true);
@@ -143,12 +148,12 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
             if (ev.getAction() == MotionEvent.ACTION_DOWN) {
                 float x = ev.getX();
                 float y = ev.getY();
-                boolean handled = imageTargetRenderer.tapVideo(x, y, surfaceWidth, surfaceHeight);
-                return handled  ;
+                return imageTargetRenderer.tapVideo(x, y, surfaceWidth, surfaceHeight);
             }
             return false;
         });
     }
+
     private void loadViewRenderJson() {
         try {
             InputStream is = getAssets().open("viewrender.json");
@@ -231,6 +236,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
 
                         if (mcfg.animation.loop)
                             animator.setRepeatCount(ValueAnimator.INFINITE);
+                        animator.setDuration(mcfg.animation.duration);
                         animator.start();
                     }
                     Log.d("Sceneform", "Loaded model: " + mcfg.id);
@@ -282,12 +288,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
     protected void onPause() {
         super.onPause();
 
-        glSurfaceView.queueEvent(new Runnable() {
-            @Override
-            public void run() {
-                imageTargetRenderer.destroyVideoPlayer();
-            }
-        });
+        glSurfaceView.queueEvent(() -> imageTargetRenderer.destroyVideoPlayer());
 
         glSurfaceView.onPause();
 
@@ -323,7 +324,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
     }
 
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
 
         if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
@@ -338,6 +339,7 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
             CameraDevice.getInstance().flipVideo(CameraDevice.FlipDirection.VERTICAL, true);
         }
     }
+
     public void updateSceneformPose(float[] m, float w, float h,
                                     boolean isModelVisible,
                                     String modelId, float modelSize) {
@@ -382,26 +384,31 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
                     break;
             }
 
+            // Apply your scaling
+            float X_MULT = 2.5f;
+            float Y_MULT = -2.5f;
+            float Z_MULT = 1.0f;
+
             Vector3 pos = new Vector3(
-                    xFix * 2.5f,
-                    yFix * -2.5f,
-                    tz * 1.0f
+                    xFix * X_MULT,
+                    yFix * Y_MULT,
+                    tz * Z_MULT
             );
 
             Quaternion baseRot = quaternionFromMatrix(corrected);
 
             Quaternion rotFix;
             switch (rotation) {
-                case Surface.ROTATION_0:
+                case Surface.ROTATION_0:     // Portrait → +90° about Z
                     rotFix = Quaternion.axisAngle(new Vector3(0, 0, 1), 90);
                     break;
-                case Surface.ROTATION_90:
+                case Surface.ROTATION_90:    // Landscape-right → no rotation
                     rotFix = Quaternion.identity();
                     break;
-                case Surface.ROTATION_180:
+                case Surface.ROTATION_180:   // Reverse portrait → 180° about Z
                     rotFix = Quaternion.axisAngle(new Vector3(0, 0, 1), 180);
                     break;
-                case Surface.ROTATION_270:
+                case Surface.ROTATION_270:   // Landscape-left → -90° about Z
                 default:
                     rotFix = Quaternion.axisAngle(new Vector3(0, 0, 1), -90);
                     break;
@@ -462,7 +469,8 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         }
         return new Quaternion(x, y, z, w);
     }
-    public void updateLabelAtModelPoint(String name,
+
+    public void updateLabelAtModelPoint(String name, String icon,
                                         float[] poseMatrix, float w, float h,
                                         float modelX, float modelY, float modelZ,
                                         float offsetX, float offsetY) {
@@ -476,18 +484,11 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
 
             if (tv == null) {
                 tv = new TextView(this);
-                tv.setText(name);
-                tv.setTextColor(Color.WHITE);
-                tv.setGravity(Gravity.CENTER);
-                tv.setTypeface(Typeface.DEFAULT_BOLD);
-                tv.setPadding(16, 16, 16, 16);
-                tv.setBackgroundResource(R.drawable.label_bg_rounded);
-
+                applyLabelStyle(name, icon, tv);
                 tv.setOnClickListener(v -> {
                     activeLabel = name;
                     glSurfaceView.requestRender();
                 });
-                applyLabelStyle(name, tv);
                 labelContainer.addView(tv);
                 labelViews.put(name, tv);
             }
@@ -502,13 +503,115 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
                 tv.setVisibility(View.GONE);
                 return;
             }
-            float finalX = screen[0] - tv.getWidth() + offsetX;
-            float finalY = screen[1] - tv.getHeight() + offsetY;
+            float[] location = setLabelLocation(poseSnapshot, screen, w, h, tv, offsetX, offsetY);
 
-            tv.setX(finalX);
-            tv.setY(finalY);
+//            float finalX = screen[0] + offsetX; // left
+//            float finalY = screen[1] + offsetY;
+//            float finalX = screen[0] - tv.getWidth() / 2f; // center
+//            float finalX = screen[0] - tv.getWidth() + offsetX;
+//            float finalY = screen[1] - tv.getHeight() + offsetY; // right
+
+            tv.setX(location[0]);
+            tv.setY(location[1]);
             tv.setVisibility(View.VISIBLE);
         });
+    }
+
+    private float[] setLabelLocation(float[] poseSnapshot, float[] screen, float w, float h, TextView tv, float offsetX, float offsetY) {
+        float[][] screenCorners = getCoordinates(poseSnapshot, screen, w, h);
+        if (screenCorners == null) {
+            tv.setVisibility(View.GONE);
+            return new float[2];
+        }
+
+        // screenCorners: [0]=bottom-left, [1]=bottom-right, [2]=top-right, [3]=top-left
+        float left = screenCorners[0][0];
+        float right = screenCorners[1][0];
+//            float top    = screenCorners[3][1];
+//            float bottom = screenCorners[0][1];
+        float top = Math.min(screenCorners[0][1], screenCorners[2][1]);
+        float bottom = Math.max(screenCorners[0][1], screenCorners[2][1]);
+
+        float screenWidth = right - left;
+        float screenHeight = bottom - top;
+
+        float absOffsetX = offsetX / 1000 * screenWidth;
+        float absOffsetY = offsetY / 1000 * screenHeight;
+
+        float centerX = (screenCorners[0][0] + screenCorners[2][0]) / 2f;
+        float centerY = (screenCorners[0][1] + screenCorners[2][1]) / 2f;
+
+        float finalX = centerX + absOffsetX;
+        float finalY = centerY + absOffsetY;
+
+        return new float[]{finalX, finalY};
+    }
+
+    private float[][] getCoordinates(float[] poseSnapshot, float[] screen, float w, float h) {
+        float halfW = w / 2f;
+        float halfH = h / 2f;
+
+        float[][] modelCorners = {
+                {-halfW, -halfH, 0, 1},
+                {halfW, -halfH, 0, 1},
+                {halfW, halfH, 0, 1},
+                {-halfW, halfH, 0, 1}
+        };
+
+        float[][] screenCorners = new float[4][2];
+
+        for (int i = 0; i < 4; i++) {
+            // Project each corner to screen space
+            float[] screenPt = projectModelPointToScreen(
+                    poseSnapshot,
+                    modelCorners[i][0],
+                    modelCorners[i][1],
+                    modelCorners[i][2]
+            );
+
+            if (screenPt == null) return null;
+
+            screenCorners[i][0] = screenPt[0];
+            screenCorners[i][1] = screenPt[1];
+        }
+//        testCoordinates(screenCorners, screen);
+        return screenCorners;
+    }
+
+    private void testCoordinates(float[][] screenCorners, float[] screen) {
+        // Draw rectangle edges
+        View overlay = new View(this) {
+            final Paint p = new Paint();
+
+            {
+                p.setColor(Color.GREEN);
+                p.setStyle(Paint.Style.STROKE);
+                p.setStrokeWidth(5f);
+                p.setAntiAlias(true);
+            }
+
+            @Override
+            protected void onDraw(@NonNull Canvas c) {
+                super.onDraw(c);
+                // Draw rectangle edges
+                for (int i = 0; i < 4; i++) {
+                    int next = (i + 1) % 4;
+                    c.drawLine(
+                            screenCorners[i][0],
+                            screenCorners[i][1],
+                            screenCorners[next][0],
+                            screenCorners[next][1],
+                            p
+                    );
+                }
+                c.drawCircle(screen[0], screen[1], 8f, p);
+            }
+        };
+        labelContainer.removeAllViews();
+        labelContainer.addView(overlay,
+                new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
     }
 
     private float[] projectModelPointToScreen(float[] poseMatrix,
@@ -544,24 +647,29 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
         return new float[]{sx, sy};
     }
 
-    private void applyLabelStyle(String name, TextView tv) {
+    private void applyLabelStyle(String name, String icon, TextView tv) {
+        tv.setText(name);
+        tv.setTextColor(Color.WHITE);
+        tv.setTypeface(Typeface.DEFAULT_BOLD);
+        tv.setTextSize(10f);
 
-        tv.setTextSize(8f);
-        setDrawableSize(tv, R.drawable.viewicon, 60, 60);
-        setTextViewSize(tv, 270, 100);
-    }
+        tv.setPadding(16, 16, 16, 16);
+        tv.setMinWidth(150);
+        tv.setMaxWidth(300);
+        FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tv.setLayoutParams(layoutParams); //270, 100
 
-    private void setTextViewSize(TextView tv, int width, int height) {
-        LinearLayout.LayoutParams params =
-                new LinearLayout.LayoutParams(width, height);
-        tv.setGravity(Gravity.CENTER);
-        tv.setLayoutParams(params);
-    }
-
-    private void setDrawableSize(TextView tv, int resId, int width, int height) {
-        Drawable d = getResources().getDrawable(resId);
-        d.setBounds(0, 0, width, height);
+        tv.setBackgroundResource(R.drawable.label_bg_rounded);
+        tv.setCompoundDrawablePadding(16);
+        Drawable d = getIconByType(icon);
         tv.setCompoundDrawables(d, null, null, null);
+    }
+
+    private Drawable getIconByType(String icon) {
+        int resId = getResources().getIdentifier(icon.replace(".xml", ""), "drawable", getPackageName());
+        Drawable drawable = ContextCompat.getDrawable(this, resId == 0 ? R.drawable.ic_baseline_info_24 : resId);
+        Objects.requireNonNull(drawable).setBounds(0, 0, 30, 30);
+        return drawable;
     }
 
     public float[] smoothPose(float[] oldPose, float[] newPose) {
@@ -580,9 +688,11 @@ public class ImageTrackerActivity extends AppCompatActivity implements View.OnCl
             if (tv != null) tv.setVisibility(View.GONE);
         });
     }
+
     public void updateProjection(float[] p) {
         System.arraycopy(p, 0, projectionMatrix, 0, 16);
     }
+
     public void updateSurfaceSize(int w, int h) {
         surfaceWidth = w;
         surfaceHeight = h;

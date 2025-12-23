@@ -11,6 +11,7 @@ import android.os.Build;
 import android.util.Log;
 
 import com.maxst.ar.CameraDevice;
+import com.maxst.ar.GuideInfo;
 import com.maxst.ar.Matrix;
 import com.maxst.ar.MaxstAR;
 import com.maxst.ar.MaxstARUtil;
@@ -23,11 +24,24 @@ import com.maxst.ar.sample.LabelConfig;
 import com.maxst.ar.sample.ModelConfig;
 import com.maxst.ar.sample.TrackerConfig;
 import com.maxst.ar.sample.VideoConfig;
+import com.maxst.ar.sample.arobject.AxisRenderer;
 import com.maxst.ar.sample.arobject.BackgroundRenderHelper;
+import com.maxst.ar.sample.arobject.BaseRenderer;
+import com.maxst.ar.sample.arobject.BlueCubeRenderer;
 import com.maxst.ar.sample.arobject.BoundingBoxRenderer;
+import com.maxst.ar.sample.arobject.BoundingShapeRenderer;
 import com.maxst.ar.sample.arobject.ChromaKeyVideoRenderer;
 import com.maxst.ar.sample.arobject.ColoredCubeRenderer;
+import com.maxst.ar.sample.arobject.CubeRenderer;
+import com.maxst.ar.sample.arobject.FeaturePointRenderer;
+import com.maxst.ar.sample.arobject.GreenCubeRenderer;
+import com.maxst.ar.sample.arobject.PyramidRenderer;
+import com.maxst.ar.sample.arobject.RedCubeRenderer;
+import com.maxst.ar.sample.arobject.SphereRenderer;
+import com.maxst.ar.sample.arobject.TexturedCircleRenderer;
 import com.maxst.ar.sample.arobject.TexturedCubeRenderer;
+import com.maxst.ar.sample.arobject.TexturedCylinderRenderer;
+import com.maxst.ar.sample.arobject.TexturedSphereRenderer;
 import com.maxst.ar.sample.arobject.VideoRenderer;
 import com.maxst.videoplayer.VideoPlayer;
 
@@ -46,6 +60,7 @@ class ImageTrackerRenderer implements Renderer {
     private TexturedCubeRenderer texturedCubeRenderer;
     private BoundingBoxRenderer boundingBoxRenderer;
     private ColoredCubeRenderer coloredCubeRenderer;
+    private BaseRenderer baseRenderer;
     private ChromaKeyVideoRenderer chromaKeyVideoRenderer;
     private int surfaceWidth;
     private int surfaceHeight;
@@ -119,15 +134,77 @@ class ImageTrackerRenderer implements Renderer {
         }
     }
 
+    private BaseRenderer setRenderer(int type) {
+        Bitmap bitmap = MaxstARUtil.getBitmapFromAsset("MaxstAR_Cube.png", activity.getAssets());
+
+        switch (type) {
+            case 1:
+                return new AxisRenderer();
+            case 5:
+                return new BlueCubeRenderer();
+            case 6:
+                return new BoundingBoxRenderer();
+            case 7:
+                return new BoundingShapeRenderer();
+            case 8:
+                ChromaKeyVideoRenderer chromaKeyVideoRenderer = new ChromaKeyVideoRenderer();
+                VideoPlayer player1 = new VideoPlayer(activity);
+                chromaKeyVideoRenderer.setVideoPlayer(player1);
+                player1.openVideo("ShutterShock.mp4");
+                return chromaKeyVideoRenderer;
+            case 9:
+                return new ColoredCubeRenderer();
+            case 10:
+                return new CubeRenderer(0.917f, 0.2627f, 0.207f, 1.0f);
+            case 11:
+                FeaturePointRenderer renderer11 = new FeaturePointRenderer();
+                Bitmap bBlue = MaxstARUtil.getBitmapFromAsset("bluedot.png", activity.getAssets());
+                Bitmap bRed = MaxstARUtil.getBitmapFromAsset("reddot.png", activity.getAssets());
+                renderer11.setFeatureImage(bBlue, bRed);
+                return renderer11;
+            case 12:
+                return new GreenCubeRenderer();
+            case 13:
+                return new PyramidRenderer(0.917f, 0.2627f, 0.207f, 1.0f);
+            case 14:
+                return new RedCubeRenderer();
+            case 15:
+                return new SphereRenderer(0.517f, 0.2627f, 0.207f, 1.0f);
+            case 16:
+                TexturedCircleRenderer renderer16 = new TexturedCircleRenderer(activity);
+                renderer16.setTextureBitmap(bitmap);
+                return renderer16;
+            case 17:
+                TexturedCubeRenderer renderer17 = new TexturedCubeRenderer(activity);
+                renderer17.setTextureBitmap(bitmap);
+                return renderer17;
+            case 18:
+                TexturedCylinderRenderer renderer18 = new TexturedCylinderRenderer(activity, 60, 1.0f, 2.0f);
+                renderer18.setTextureBitmap(bitmap);
+                return renderer18;
+            case 19:
+                TexturedSphereRenderer renderer19 = new TexturedSphereRenderer(activity, 40, 40, 1.0f);
+                renderer19.setTextureBitmap(bitmap);
+                return renderer19;
+            case 20:
+            default:
+                VideoRenderer renderer = new VideoRenderer();
+                VideoPlayer player = new VideoPlayer(activity);
+                renderer.setVideoPlayer(player);
+                player.openVideo("VideoSample.mp4");
+                return renderer;
+        }
+    }
+
     @Override
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
         GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        Bitmap bitmap = MaxstARUtil.getBitmapFromAsset("MaxstAR_Cube.png", activity.getAssets());
         texturedCubeRenderer = new TexturedCubeRenderer(activity);
         boundingBoxRenderer = new BoundingBoxRenderer();
         coloredCubeRenderer = new ColoredCubeRenderer();
         chromaKeyVideoRenderer = new ChromaKeyVideoRenderer();
         videoRenderer = new VideoRenderer();
+        baseRenderer = setRenderer(20);
 
         for (Map.Entry<String, Map<String, VideoConfig>> trackerEntry : videosByTracker.entrySet()) {
             String trackerName = trackerEntry.getKey();
@@ -220,11 +297,35 @@ class ImageTrackerRenderer implements Renderer {
                     imageTrackerActivity.updateGlacierPose(pose, width, height, false, "", 0.5f);
                 }
             } else {
-                coloredCubeRenderer.setProjectionMatrix(projectionMatrix);
-                coloredCubeRenderer.setTransform(trackable.getPoseMatrix());
-                coloredCubeRenderer.setTranslate(0, 0, -0.1f);
-                coloredCubeRenderer.setScale(trackable.getWidth(), trackable.getHeight(), -0.1f);
-                coloredCubeRenderer.draw();
+                if (baseRenderer instanceof VideoRenderer) {
+                    VideoPlayer player = ((VideoRenderer) baseRenderer).getVideoPlayer();
+                    if (player.getState() == VideoPlayer.STATE_READY ||
+                            player.getState() == VideoPlayer.STATE_PAUSE) {
+                        player.start();
+                    }
+                }
+                if (baseRenderer instanceof ChromaKeyVideoRenderer) {
+                    VideoPlayer player = ((ChromaKeyVideoRenderer) baseRenderer).getVideoPlayer();
+                    if (player.getState() == VideoPlayer.STATE_READY ||
+                            player.getState() == VideoPlayer.STATE_PAUSE) {
+                        player.start();
+                    }
+                }
+                if (baseRenderer instanceof FeaturePointRenderer) {
+                    GuideInfo gi = TrackerManager.getInstance().getGuideInformation();
+                    ((FeaturePointRenderer) baseRenderer).draw(gi, trackingResult);
+                } else {
+                    baseRenderer.setProjectionMatrix(projectionMatrix);
+                    baseRenderer.setTransform(trackable.getPoseMatrix());
+                    baseRenderer.setTranslate(0, 0, 0.0f);
+                    baseRenderer.setScale(trackable.getWidth(), trackable.getHeight(), 0.1f);
+                    baseRenderer.draw();
+                }
+//                coloredCubeRenderer.setProjectionMatrix(projectionMatrix);
+//                coloredCubeRenderer.setTransform(trackable.getPoseMatrix());
+//                coloredCubeRenderer.setTranslate(0, 0, -0.1f);
+//                coloredCubeRenderer.setScale(trackable.getWidth(), trackable.getHeight(), -0.1f);
+//                coloredCubeRenderer.draw();
             }
         }
         if (!targetDetected) {
@@ -267,7 +368,7 @@ class ImageTrackerRenderer implements Renderer {
                 float modelX = lbl.anchor.xRel * width;
                 float modelY = lbl.anchor.yRel * height;
                 float modelZ = lbl.anchor.zRel;
-                imageTrackerActivity.updateLabelAtModelPoint( lbl.text, pose, 0, 0, 0, 0,0, lbl.offsetPx.x,   lbl.offsetPx.y);
+                imageTrackerActivity.updateLabelAtModelPoint(lbl.text, lbl.icon, pose, width, height, 0, 0, 0, lbl.offsetPx.x, lbl.offsetPx.y);
 
             }
         } else {
@@ -341,7 +442,6 @@ class ImageTrackerRenderer implements Renderer {
                 previousActiveLabel = currentLabel;
 
             } else {
-                labelChanged = false;
                 pauseAllPlayingPlayers();
                 previousActiveLabel = currentLabel;
             }
@@ -540,6 +640,12 @@ class ImageTrackerRenderer implements Renderer {
             } catch (Exception ignored) {
             }
         }
+        if (baseRenderer != null && baseRenderer instanceof VideoRenderer) {
+            ((VideoRenderer) baseRenderer).getVideoPlayer().destroy();
+        }
+        if (baseRenderer != null && baseRenderer instanceof ChromaKeyVideoRenderer) {
+            ((ChromaKeyVideoRenderer) baseRenderer).getVideoPlayer().destroy();
+        }
     }
 
     private void pauseAllPlayers() {
@@ -603,7 +709,6 @@ class ImageTrackerRenderer implements Renderer {
         if (activePlayer == null || modelMat == null) {
             return false;
         }
-        if (modelMat == null) return false;
         // compute MVP = projection * model
         float[] mvp = new float[16];
         Matrix.multiplyMM(mvp, 0, latestProjectionMatrix, 0, modelMat, 0);
@@ -707,7 +812,6 @@ class ImageTrackerRenderer implements Renderer {
             vp.setPosition(0);
             chromaKeyVideoRenderer.updateVideo(true);
             vp.start();
-            return;
         }
     }
 
@@ -745,7 +849,6 @@ class ImageTrackerRenderer implements Renderer {
             vp.setPosition(0);
             videoRenderer.updateVideo(true);
             vp.start();
-            return;
         }
     }
 

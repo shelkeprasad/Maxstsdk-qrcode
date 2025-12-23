@@ -3,25 +3,16 @@ package com.maxst.ar.sample.qrcodeFusionTracker;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.opengl.GLSurfaceView;
-import android.os.Build;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
-import android.util.TypedValue;
-import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.FrameLayout;
-import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
@@ -32,12 +23,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.bumptech.glide.Glide;
 import com.google.android.exoplayer2.MediaItem;
 import com.google.android.exoplayer2.PlaybackException;
 import com.google.android.exoplayer2.Player;
 import com.google.android.exoplayer2.SimpleExoPlayer;
-import com.google.android.exoplayer2.analytics.AnalyticsListener;
 import com.google.android.exoplayer2.ui.PlayerView;
 import com.google.gson.JsonObject;
 import com.maxst.ar.CameraDevice;
@@ -47,10 +36,8 @@ import com.maxst.ar.sample.R;
 import com.maxst.ar.sample.util.TrackerResultListener;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -340,7 +327,7 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
             Call<JsonObject> call = apiService.getStepItems(stepId, token);
             call.enqueue(new Callback<JsonObject>() {
                 @Override
-                public void onResponse(Call<JsonObject> call, Response<JsonObject> response) {
+                public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
                     isApiCallInProgress = false;
 
                     if (!response.isSuccessful() || response.body() == null) return;
@@ -379,7 +366,7 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                             arImage = new ImageView(ScanQrcodeActivity.this);
                             arImage.setTag("AR_IMAGE");
                             arImage.setAdjustViewBounds(true);
-                            arImage.setImageResource(R.drawable.img12);
+                            arImage.setImageResource(R.drawable.ic_baseline_info_24);
 
                             int width = 150;
                             int height = 80;
@@ -434,7 +421,7 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
                 }
 
                 @Override
-                public void onFailure(Call<JsonObject> call, Throwable t) {
+                public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable t) {
                     t.printStackTrace();
                     isApiCallInProgress = false;
                 }
@@ -1182,34 +1169,26 @@ public class ScanQrcodeActivity extends AppCompatActivity implements View.OnClic
     private TrackerResultListener resultListener = new TrackerResultListener() {
         @Override
         public void sendData(final String metaData) {
-            (ScanQrcodeActivity.this).runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
+            (ScanQrcodeActivity.this).runOnUiThread(() -> {
 
-                    if (detectedQRCodes.contains(metaData)) {
-                        return;
-                    }
-                    detectedQRCodes.add(metaData);
-
-                    recognizedQrCodeView.setText("QRCODE : " + metaData);
+                if (detectedQRCodes.contains(metaData)) {
+                    return;
                 }
+                detectedQRCodes.add(metaData);
+
+                recognizedQrCodeView.setText("QRCODE : " + metaData);
             });
         }
 
         @Override
         public void sendFusionState(final int state) {
-            (ScanQrcodeActivity.this).runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    guideView.setVisibility(state == 1 ? View.INVISIBLE : View.VISIBLE);
-                }
-            });
+            (ScanQrcodeActivity.this).runOnUiThread(() -> guideView.setVisibility(state == 1 ? View.INVISIBLE : View.VISIBLE));
         }
     };
 
 
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
 
         if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {

@@ -89,36 +89,18 @@
         ],
         "labels": [
           {
-            "id": "l_Motor View",
-            "text": "Motor View",
-            "type": 24,
-            "anchor": {
-              "xRel": -0.5,
-              "yRel": 0.5,
-              "zRel": 0
-            },
-            "offsetPx": {
-              "x": 450,
-              "y": -500
-            },
-            "onClickAction": {
-              "type": "showModel",
-              "targetModelId": "Motor View",
-              "enableModel": true
-            }
-          },
-          {
             "type": 24,
             "id": "l_HVAC - Intro",
             "text": "HVAC - Intro",
+            "icon": "ic_baseline_video_library_24.xml",
             "anchor": {
               "xRel": -0.5,
               "yRel": 0.5,
               "zRel": 0
             },
             "offsetPx": {
-              "x": 20,
-              "y": 270
+              "x": 500,
+              "y": -375
             },
             "onClickAction": {
               "type": "playVideo",
@@ -128,6 +110,7 @@
           {
             "id": "l_Air Duct",
             "text": "Air Duct",
+            "icon": "ic_baseline_video_library_24.xml",
             "type": 24,
             "anchor": {
               "xRel": -0.5,
@@ -135,8 +118,8 @@
               "zRel": 0
             },
             "offsetPx": {
-              "x": 250,
-              "y": 270
+              "x": 500,
+              "y": -225
             },
             "onClickAction": {
               "type": "playVideo",
@@ -147,14 +130,15 @@
             "type": 24,
             "id": "l_Components",
             "text": "Components",
+            "icon": "ic_baseline_video_library_24.xml",
             "anchor": {
               "xRel": -0.5,
               "yRel": 0.5,
               "zRel": 0
             },
             "offsetPx": {
-              "x": 550,
-              "y": 270
+              "x": 500,
+              "y": -75
             },
             "onClickAction": {
               "type": "playVideo",
@@ -164,6 +148,7 @@
           {
             "id": "l_Cooling/Heating Coil",
             "text": "Cooling/Heating Coil",
+            "icon": "ic_baseline_video_library_24.xml",
             "type": 24,
             "anchor": {
               "xRel": -0.5,
@@ -171,8 +156,8 @@
               "zRel": 0
             },
             "offsetPx": {
-              "x": 250,
-              "y": 420
+              "x": 500,
+              "y": 75
             },
             "onClickAction": {
               "type": "playVideo",
@@ -180,8 +165,9 @@
             }
           },
           {
-            "id": "l_Close",
-            "text": "Close",
+            "id": "l_Motor View",
+            "text": "Motor View",
+            "icon": "ic_baseline_view_in_ar_24.xml",
             "type": 24,
             "anchor": {
               "xRel": -0.5,
@@ -189,8 +175,28 @@
               "zRel": 0
             },
             "offsetPx": {
-              "x": 550,
-              "y": 470
+              "x": 500,
+              "y": 225
+            },
+            "onClickAction": {
+              "type": "showModel",
+              "targetModelId": "Motor View",
+              "enableModel": true
+            }
+          },
+          {
+            "id": "l_Close",
+            "text": "Clear All",
+            "icon": "baseline_cancel_24.xml",
+            "type": 24,
+            "anchor": {
+              "xRel": -0.5,
+              "yRel": 0.5,
+              "zRel": 0
+            },
+            "offsetPx": {
+              "x": 500,
+              "y": 375
             },
             "onClickAction": {
               "type": "hideAll",
@@ -418,31 +424,6 @@
               "loop": true,
               "duration": 5000,
               "animationIndex": 1
-            }
-          }
-        ]
-      }
-    },
-    {
-      "id": "Lego",
-      "name": "Lego",
-      "mapPath": "ImageTarget/Lego.2dmap",
-      "assets": {
-        "videos": [
-          {
-            "id": "video_step1",
-            "name": "Step1Video",
-            "path": "file:///android_asset/VideoSample.mp4",
-            "type": 20,
-            "initialEnabled": true,
-            "scale": {
-              "widthFactor": 1.8,
-              "heightFactor": 0.5
-            },
-            "translate": {
-              "xFactor": 0.0,
-              "yFactor": 0.0,
-              "z": 0
             }
           }
         ]

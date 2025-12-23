@@ -3,6 +3,7 @@ package com.maxst.ar.sample;
 public class LabelConfig {
     public String id;
     public String text;
+    public String icon;
     public Anchor anchor;
     public OffsetPx offsetPx;
     public OnClickAction onClickAction;
