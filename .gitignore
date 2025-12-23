@@ -1,0 +1,6 @@
+/.gradle/
+/.idea/
+/libs/BasicFunctionSDK_1.2.1.aar
+/libs/libVideoPlayer.so
+/libs/VideoPlayer.jar
+/libs/MaxstAR.aar
