@@ -9,5 +9,5 @@ local.properties
 .idea/
 /MaxstARSample/local.properties
 /MaxstARSample/build/
-/MaxstARSample/.gradle
-/MaxstARSample/.idea
+/MaxstARSample/.gradle/
+/MaxstARSample/.idea/
